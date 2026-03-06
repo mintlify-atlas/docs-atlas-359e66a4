@@ -1,0 +1,100 @@
+---
+title: Introduction
+description: Welcome to 256t.org - a public specification for content-addressable storage using 94-character content identifiers
+---
+
+# Welcome to 256t.org
+
+256t.org is a public specification for content-addressable storage that uses fixed-length, 94-character content identifiers (CIDs). This simple standard provides a predictable format for identifying and retrieving content based on its cryptographic hash and length.
+
+## Why 256t.org?
+
+Content-addressable storage solves fundamental problems in digital content distribution:
+
+- **Eliminate broken links** — Content is identified by what it is, not where it is
+- **Guarantee integrity** — CIDs are cryptographically derived from content
+- **Enable indefinite caching** — Immutable content can be cached forever
+- **Simplify distribution** — Any server can host content matching the CID specification
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Fixed-Length Identifiers" icon="ruler">
+    94-character CIDs fit comfortably in URLs, file names, and database fields
+  </Card>
+  <Card title="SHA-512 Based" icon="shield-check">
+    Cryptographically secure content addressing with collision resistance
+  </Card>
+  <Card title="Efficient for Small Content" icon="compress">
+    Content ≤ 64 bytes stored inline instead of hashed
+  </Card>
+  <Card title="40+ Implementations" icon="code">
+    Reference implementations in every major programming language
+  </Card>
+  <Card title="Web-Based Tools" icon="wrench">
+    Interactive hash calculator, CID checker, and download tools
+  </Card>
+  <Card title="Production Ready" icon="rocket">
+    Cloudflare R2 and GitHub Pages deployment examples
+  </Card>
+</CardGroup>
+
+## How It Works
+
+Every 94-character path uniquely identifies content:
+
+```
+https://256t.org/<8-char-length><86-char-hash-or-content>
+```
+
+The CID consists of two parts:
+
+1. **8 characters** — Base64URL-encoded length (supports up to 256 terabytes)
+2. **Up to 86 characters** — SHA-512 hash (for content > 64 bytes) OR the content itself (for content ≤ 64 bytes)
+
+<Note>
+For content 64 bytes or smaller, the base64url-encoded content is shorter than or equal to the hash, so it's stored inline instead.
+</Note>
+
+## Quick Example
+
+Here's how to compute a CID in JavaScript:
+
+```javascript
+import { computeCID } from '256t-cid';
+
+const content = "Hello, World!";
+const cid = computeCID(content);
+// Returns: AAAAAAAADUhlbGxvLCBXb3JsZCE (13 bytes inline)
+```
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="What is 256t.org?" icon="question" href="/what-is-256t">
+    Learn about the specification and its design principles
+  </Card>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Generate your first CID in minutes
+  </Card>
+  <Card title="View Implementations" icon="code" href="/implementations/overview">
+    Choose from 40+ language implementations
+  </Card>
+  <Card title="Try the Tools" icon="screwdriver-wrench" href="/tools/overview">
+    Use interactive web-based CID tools
+  </Card>
+</CardGroup>
+
+## What's Next?
+
+<Steps>
+  <Step title="Understand the Specification">
+    Read about [CID format](/specification/cid-format) and [hash algorithms](/specification/hash-algorithm)
+  </Step>
+  <Step title="Try an Implementation">
+    Choose your language and start [generating CIDs](/implementations/overview)
+  </Step>
+  <Step title="Deploy Your Own">
+    Learn about [Cloudflare R2](/deployment/cloudflare-r2) or [GitHub Pages](/deployment/github-pages) deployment
+  </Step>
+</Steps>

@@ -1,0 +1,240 @@
+---
+title: "Base64url Encoding"
+description: "Detailed specification of base64url encoding used in 256t.org CIDs"
+---
+
+## Overview
+
+All components of a 256t.org CID use **base64url encoding**, a URL and filename-safe variant of standard Base64 encoding.
+
+<Info>
+Base64url encoding is defined in [RFC 4648 Section 5](https://datatracker.ietf.org/doc/html/rfc4648#section-5).
+</Info>
+
+## What is Base64url?
+
+Base64url is a modification of standard Base64 encoding that uses characters safe for URLs and filenames:
+
+| Feature | Standard Base64 | Base64url |
+|---------|-----------------|------------|
+| Character 62 | `+` (plus) | `-` (hyphen) |
+| Character 63 | `/` (slash) | `_` (underscore) |
+| Padding | `=` (required) | Omitted or optional |
+| URL safe | No | Yes |
+| Filename safe | No | Yes |
+
+## Character Set
+
+Base64url uses 64 characters for encoding:
+
+```
+A-Z: 26 characters (values 0-25)
+a-z: 26 characters (values 26-51)
+0-9: 10 characters (values 52-61)
+-  : 1 character (value 62, replaces +)
+_  : 1 character (value 63, replaces /)
+```
+
+Complete alphabet:
+```
+ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_
+```
+
+## Encoding Process
+
+Base64url encodes binary data by converting 3 bytes (24 bits) into 4 base64 characters (6 bits each):
+
+```
+3 bytes = 24 bits → 4 base64 characters
+1 byte = 8 bits → 1.333... base64 characters
+```
+
+### Bits per Character
+
+Each base64url character represents 6 bits:
+
+```
+2^6 = 64 possible values (0-63)
+```
+
+### Efficiency
+
+Base64url encoding expands data by approximately 33%:
+
+```
+Original size: n bytes
+Encoded size: ⌈(n × 8) / 6⌉ characters
+Overhead: ~33%
+```
+
+<Note>
+For exact calculations, remember that base64url encoding maps 3 input bytes to 4 output characters.
+</Note>
+
+## Padding
+
+Unlike standard Base64, base64url encoding in 256t.org uses **minimum padding**:
+
+- Padding characters (`=`) are typically omitted
+- The decoder can infer the original length from context
+- For content ≤ 64 bytes stored inline, use minimum necessary padding
+
+<Warning>
+Some implementations may include padding. Both padded and unpadded versions should be accepted during decoding, but generation should use minimum padding.
+</Warning>
+
+## Application in CIDs
+
+### Length Prefix (8 characters)
+
+The content length is encoded as a 48-bit integer in base64url:
+
+```
+48 bits / 6 bits per character = 8 characters
+```
+
+Example for 1024-byte content:
+```
+1024 in binary: 0b10000000000
+48-bit representation: 0x0000000000000400
+Base64url encoded: AAAAAABA
+```
+
+### SHA-512 Hash (86 characters)
+
+A 64-byte SHA-512 hash encodes to 86 base64url characters:
+
+```
+64 bytes × 8 bits = 512 bits
+512 bits / 6 bits per character = 85.333...
+⌈85.333...⌉ = 86 characters
+```
+
+### Inline Content (variable length)
+
+For content ≤ 64 bytes:
+
+```
+Max content size: 64 bytes
+Max encoded size: ⌈(64 × 8) / 6⌉ = 86 characters
+```
+
+This ensures inline content never exceeds the hash length.
+
+## Implementation Examples
+
+### JavaScript/TypeScript
+
+```javascript
+// Encode binary data to base64url
+function toBase64url(bytes) {
+  const base64 = btoa(String.fromCharCode(...bytes));
+  return base64
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// Decode base64url to binary data
+function fromBase64url(str) {
+  const base64 = str
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const padding = '='.repeat((4 - base64.length % 4) % 4);
+  return Uint8Array.from(atob(base64 + padding), c => c.charCodeAt(0));
+}
+```
+
+### Python
+
+```python
+import base64
+
+# Encode bytes to base64url
+def to_base64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode('ascii').rstrip('=')
+
+# Decode base64url to bytes
+def from_base64url(s: str) -> bytes:
+    padding = '=' * (4 - len(s) % 4)
+    return base64.urlsafe_b64decode(s + padding)
+```
+
+### Go
+
+```go
+import "encoding/base64"
+
+// Encode bytes to base64url
+func toBase64url(data []byte) string {
+    return base64.RawURLEncoding.EncodeToString(data)
+}
+
+// Decode base64url to bytes
+func fromBase64url(s string) ([]byte, error) {
+    return base64.RawURLEncoding.DecodeString(s)
+}
+```
+
+<Note>
+The `RawURLEncoding` in Go automatically handles base64url format without padding.
+</Note>
+
+## URL Safety
+
+Base64url encoding ensures CIDs are safe in various contexts:
+
+### URL Paths
+```
+https://256t.org/AAAAAABA7x2G-K1vZ8...
+                 ↑ base64url characters safe in URLs
+```
+
+### Filenames
+```bash
+$ ls
+AAAAAAAAA7x2G-K1vZ8_abc123.dat
+         ↑ - and _ are filename-safe
+```
+
+### Query Parameters
+```
+https://api.example.com/content?cid=AAAAAABA7x2G-K1vZ8...
+```
+
+<Warning>
+Standard Base64 uses `+` and `/`, which are not URL-safe and require percent-encoding. Always use base64url for CIDs.
+</Warning>
+
+## Common Pitfalls
+
+<Accordion title="Using Standard Base64">
+**Problem**: Standard Base64 uses `+` and `/` which require URL encoding.
+
+**Solution**: Always use base64url encoding with `-` and `_` replacements.
+</Accordion>
+
+<Accordion title="Inconsistent Padding">
+**Problem**: Some implementations add padding (`=`), others don't.
+
+**Solution**: Decoders should accept both formats. Encoders should use minimum padding.
+</Accordion>
+
+<Accordion title="Character Set Confusion">
+**Problem**: Mixing up which characters are replaced.
+
+**Solution**: Remember the mnemonic "Plus to Minus, Slash to Underscore" (`+` → `-`, `/` → `_`)
+</Accordion>
+
+## Verification
+
+To verify correct base64url encoding:
+
+1. Check character set: Only `A-Z`, `a-z`, `0-9`, `-`, `_`
+2. Verify length calculations match expected output
+3. Test round-trip encoding/decoding
+4. Ensure URL safety (no percent-encoding needed)
+
+<Info>
+See the [implementations directory](https://github.com/curtcox/256t.org/tree/main/implementations) for tested base64url encoding in 40+ programming languages.
+</Info>

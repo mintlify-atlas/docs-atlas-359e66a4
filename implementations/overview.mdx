@@ -1,0 +1,134 @@
+---
+title: Implementations Overview
+description: Explore 256t.org implementations across 40+ programming languages
+---
+
+The 256t.org specification has been implemented in over 40 programming languages, each providing utilities to generate and verify content identifiers (CIDs).
+
+## What is a CID?
+
+A Content Identifier (CID) in 256t.org is a self-describing identifier that consists of:
+- **Prefix**: Base64url-encoded content length (6 bytes)
+- **Suffix**: Either the content itself (≤64 bytes) or its SHA-512 hash (>64 bytes)
+
+This design ensures that:
+- Small files embed their content directly in the CID
+- Large files use cryptographic hashing for integrity
+- All CIDs are URL-safe and compact
+
+## Core Functions
+
+Every implementation provides two essential functions:
+
+### compute_cid(content)
+
+Generates a content identifier from binary data.
+
+```python
+# Example: Computing a CID
+cid = compute_cid(b"Hello, World!")
+print(cid)  # AAAAAAAAAAAAAAATSGVsbG8sIFdvcmxkIQ
+```
+
+### download_cid(base_url, cid)
+
+Downloads content from a URL and validates its CID.
+
+```python
+# Example: Downloading and verifying content
+content, computed, is_valid = download_cid("https://256t.org", cid)
+if is_valid:
+    print("Content verified!")
+```
+
+## Popular Implementations
+
+<CardGroup cols={2}>
+  <Card title="JavaScript" icon="js" href="/implementations/javascript">
+    Node.js and browser-compatible implementation
+  </Card>
+  <Card title="Python" icon="python" href="/implementations/python">
+    Pure Python implementation with type hints
+  </Card>
+  <Card title="Rust" icon="rust" href="/implementations/rust">
+    High-performance systems programming implementation
+  </Card>
+  <Card title="Go" icon="golang" href="/implementations/go">
+    Concurrent and efficient Go implementation
+  </Card>
+</CardGroup>
+
+## All Languages
+
+For a complete list of all 40+ implementations with installation instructions and links, see the [All Languages](/implementations/all-languages) page.
+
+## Implementation Features
+
+All implementations share these characteristics:
+
+<AccordionGroup>
+  <Accordion title="Standard Compliance">
+    Every implementation follows the same specification, ensuring CIDs computed in one language can be verified in another.
+  </Accordion>
+  
+  <Accordion title="No External Dependencies" defaultOpen>
+    Most implementations use only standard library functions, making them lightweight and easy to integrate.
+  </Accordion>
+  
+  <Accordion title="Production Ready">
+    All implementations include validation tests against the official test suite in the `cids/` directory.
+  </Accordion>
+</AccordionGroup>
+
+## Architecture
+
+Each implementation typically includes:
+
+- **cid.{ext}**: Core library with `compute_cid()` and `download_cid()` functions
+- **generate.{ext}**: Script to generate CIDs for all examples
+- **check.{ext}**: Validation script that verifies all CIDs
+
+<CodeGroup>
+
+```bash Bash
+cd implementations/bash
+./generate.sh  # Generate CIDs
+./check.sh     # Verify CIDs
+```
+
+```bash Python
+cd implementations/python
+python generate.py  # Generate CIDs
+python check.py     # Verify CIDs
+```
+
+```bash JavaScript
+cd implementations/javascript
+node generate.js  # Generate CIDs
+node check.js     # Verify CIDs
+```
+
+</CodeGroup>
+
+## Getting Started
+
+Choose your language and jump to its implementation guide:
+
+| Language | Documentation |
+|----------|---------------|
+| JavaScript/Node.js | [JavaScript Guide](/implementations/javascript) |
+| Python | [Python Guide](/implementations/python) |
+| Rust | [Rust Guide](/implementations/rust) |
+| Go | [Go Guide](/implementations/go) |
+| All Others | [All Languages](/implementations/all-languages) |
+
+## Contributing
+
+Want to add a new language implementation? The specification is simple:
+
+1. Implement `encode_length(n)` - encodes integer to 6-byte base64url
+2. Implement `to_base64url(bytes)` - standard base64url encoding
+3. Implement `compute_cid(content)` - combines length prefix with content/hash
+4. Test against examples in the `cids/` directory
+
+See the [GitHub repository](https://github.com/curtcox/256t.org) for contribution guidelines.

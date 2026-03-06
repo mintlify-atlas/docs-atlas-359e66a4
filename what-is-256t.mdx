@@ -1,0 +1,156 @@
+---
+title: What is 256t.org?
+description: Learn about 256t.org, a public specification for content-addressable storage using cryptographic identifiers
+---
+
+256t.org is a public specification for content-addressable storage that uses fixed-length content identifiers (CIDs) to uniquely identify and retrieve content based on its cryptographic hash and length.
+
+## Overview
+
+In this scheme, the last element of up to 94 characters in a URL path defines the content at that URL. Each CID is a base64url-encoded string that either contains the content itself (for small content) or a SHA-512 hash of the content (for larger content), prefixed with an 8-character length indicator.
+
+<Note>
+256t.org focuses on the **specification** for content identifiers. Storage, retrieval, discovery, and publishing mechanisms are implementation details left to individual projects.
+</Note>
+
+## Why Content-Addressable Storage?
+
+Content-addressable storage solves several fundamental problems:
+
+<CardGroup cols={2}>
+  <Card title="Immutability" icon="lock">
+    Content cannot be changed without changing its identifier
+  </Card>
+  <Card title="Verifiability" icon="shield-check">
+    Anyone can verify content matches its claimed identifier
+  </Card>
+  <Card title="Deduplication" icon="copy">
+    Identical content always has the same identifier
+  </Card>
+  <Card title="Infinite Caching" icon="clock">
+    Content can be cached indefinitely without concern for updates
+  </Card>
+</CardGroup>
+
+## The 94-Character CID Format
+
+A CID consists of two parts:
+
+| Part | Length | Purpose | Format |
+|------|--------|---------|--------|
+| **Length Prefix** | 8 characters | Stores the content length | Base64url-encoded 48-bit integer |
+| **Content/Hash** | Up to 86 characters | Content or SHA-512 hash | Base64url-encoded |
+
+### For Content ≤ 64 bytes
+
+The content itself is base64url-encoded and stored directly in the CID:
+
+```
+CID = length_prefix (8 chars) + base64url(content) (≤86 chars)
+```
+
+**Example:**
+```
+Content: "This"
+Length: 4 bytes
+CID: AAAAAAAEVGhpcw
+     ^^^^^^^^ length prefix (8 chars)
+             ^^^^^^ base64url("This")
+```
+
+### For Content > 64 bytes
+
+The SHA-512 hash of the content is base64url-encoded:
+
+```
+CID = length_prefix (8 chars) + base64url(sha512(content)) (86 chars)
+```
+
+**Example:**
+```
+Content: (1024 bytes of data)
+Length: 1024 bytes
+CID: AAAAEAA<...86 character hash...>
+     ^^^^^^^^ length prefix
+             ^^^^^^^^^^^^^^^^^^^ SHA-512 hash (86 chars)
+```
+
+## Why These Design Choices?
+
+### SHA-512 Hash
+
+SHA-512 provides strong collision resistance (512 bits) making accidental collisions cryptographically infeasible. The additional length compared to SHA-256 is offset by the efficiency of inline storage for small content.
+
+### 8-Character Length Prefix
+
+8 characters of base64url encoding provides 48 bits of information:
+
+```
+2^48 = 256 terabytes
+     = 2^40 * 2^8
+     = 2^10 * 2^10 * 2^10 * 2^10 * 2^8
+     = 1K * 1M * 1G * 1T * 256
+```
+
+This is sufficient for virtually all use cases while keeping the prefix compact.
+
+### Base64url Encoding
+
+Base64url (defined in [RFC 4648 Section 5](https://datatracker.ietf.org/doc/html/rfc4648#section-5)) uses URL and filename-safe characters:
+- Replaces `+` with `-`
+- Replaces `/` with `_`
+- Omits padding `=` characters
+
+This makes CIDs safe to use directly in URLs, filenames, and databases without encoding.
+
+## Key Properties
+
+<Warning>
+The following statements are "true enough" for practical purposes, though technically not absolute:
+</Warning>
+
+- **Unique Identification**: A 94-character CID uniquely determines content (completely true for content ≤ 64 bytes)
+- **Immutability**: Content cannot be changed (it could theoretically be replaced by different content meeting the same description)
+- **Safe Caching**: Content can be cached indefinitely
+
+## Use Cases
+
+256t.org is suitable for:
+
+- **Document Management**: Version control and archival systems
+- **CDN Distribution**: Serving immutable assets with aggressive caching
+- **Blockchain/DLT**: Storing content hashes on-chain with off-chain data
+- **Academic Publishing**: Permanent references to research data
+- **Software Distribution**: Verifiable binary distributions
+- **Backup Systems**: Deduplication and verification
+
+## What's Out of Scope
+
+The 256t.org specification intentionally does not define:
+
+- **Discovery**: How to find servers hosting specific CIDs
+- **Publishing**: Where and how to publish CIDs
+- **Metadata**: HTTP headers, MIME types, permissions
+- **Access Control**: Authentication and authorization
+- **Network Protocols**: How to transfer content between systems
+
+These are implementation concerns that vary by use case.
+
+## Multiple Implementations
+
+The specification has been implemented in **over 40 programming languages**, ensuring wide compatibility and demonstrating the simplicity of the standard.
+
+<Card title="View All Implementations" icon="code" href="/implementations/overview">
+  Explore implementations in Python, JavaScript, Go, Rust, and 40+ other languages
+</Card>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Compute and verify your first CID in minutes
+  </Card>
+  <Card title="FAQ" icon="question" href="/faq">
+    Common questions about 256t.org
+  </Card>
+</CardGroup>

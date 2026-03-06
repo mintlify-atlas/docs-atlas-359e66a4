@@ -1,0 +1,62 @@
+---
+title: Tools Overview
+description: Interactive web-based tools for working with Content Identifiers (CIDs)
+---
+
+The 256t.org project includes several web-based tools to help you work with Content Identifiers (CIDs). These tools run entirely in your browser using the Web Crypto API.
+
+## Available Tools
+
+### Hash Calculator
+
+Type or paste text to instantly see its SHA-512 hash encoded in Base64URL format. This tool is perfect for:
+
+- Understanding how text is converted to a CID
+- Testing text normalization options
+- Calculating CIDs for small text snippets
+
+[Go to Hash Calculator →](hash-calculator)
+
+### File CID Checker
+
+Upload or drag-and-drop any file to analyze its content and calculate its CID. Features include:
+
+- Support for any file type
+- Content preview for text and images
+- Real-time CID calculation
+- File metadata display
+
+[Go to CID Checker →](cid-checker)
+
+### CID Download Tool
+
+Download and verify content from a 256t.org compatible server using a CID. This tool:
+
+- Fetches content by CID from remote servers
+- Verifies content integrity by recalculating the CID
+- Displays literal CIDs (embedded content ≤ 64 bytes)
+- Checks CORS status for remote servers
+
+[Go to Download Tool →](download-tool)
+
+## How These Tools Work Together
+
+These tools form a complete workflow for working with CIDs:
+
+1. **Create** - Use the Hash Calculator to generate CIDs for text content
+2. **Verify** - Use the CID Checker to validate CIDs for local files
+3. **Retrieve** - Use the Download Tool to fetch and verify content from remote servers
+
+<Note>
+All tools use client-side JavaScript and the Web Crypto API. Your content never leaves your browser when using the Hash Calculator or CID Checker.
+</Note>
+
+## Browser Requirements
+
+These tools require a modern browser with support for:
+
+- Web Crypto API (crypto.subtle)
+- File API (for drag-and-drop)
+- Fetch API (for downloading content)
+
+All major modern browsers (Chrome, Firefox, Safari, Edge) support these features.

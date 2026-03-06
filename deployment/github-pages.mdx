@@ -1,0 +1,371 @@
+---
+title: GitHub Pages Deployment
+description: Deploy 256t.org to GitHub Pages for free hosting with automatic SSL
+---
+
+GitHub Pages provides free static site hosting with automatic HTTPS. The site is automatically deployed when changes are pushed to the `main` branch.
+
+## Live URL
+
+The site is available at:
+
+<Card title="GitHub Pages Site" icon="globe" href="https://curtcox.github.io/256t.org/">
+  **https://curtcox.github.io/256t.org/**
+</Card>
+
+## Workflow Configuration
+
+The deployment is defined in `.github/workflows/deploy-pages.yml`:
+
+```yaml
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+```
+
+### Key Features
+
+<AccordionGroup>
+  <Accordion title="Automatic Triggers">
+    The workflow runs automatically:
+    - On every push to `main` branch
+    - Can be triggered manually via Actions UI
+  </Accordion>
+
+  <Accordion title="Permissions">
+    Required GitHub Actions permissions:
+    - `contents: read` - Read repository files
+    - `pages: write` - Deploy to GitHub Pages
+    - `id-token: write` - OIDC authentication for Pages
+  </Accordion>
+
+  <Accordion title="Concurrency Control">
+    Only one Pages deployment runs at a time:
+    - `cancel-in-progress: true` - Cancels previous deployment if new one starts
+  </Accordion>
+</AccordionGroup>
+
+## Deployment Process
+
+The deployment consists of two jobs: **build** and **deploy**.
+
+### Build Job
+
+<Steps>
+  <Step title="Checkout Repository">
+    ```yaml
+    - name: Check out repository
+      uses: actions/checkout@v4
+    ```
+  </Step>
+
+  <Step title="Configure Pages">
+    ```yaml
+    - name: Set up GitHub Pages
+      uses: actions/configure-pages@v4
+    ```
+    Configures the Pages environment and base URL.
+  </Step>
+
+  <Step title="Build Static Site">
+    Installs Python dependencies and runs build script:
+
+    ```bash
+    python -m pip install --upgrade pip
+    python -m pip install markdown
+    ```
+
+    The build script:
+    1. Converts Markdown files to HTML
+    2. Generates `cids.json` index
+    3. Copies all resources to `dist/`
+  </Step>
+
+  <Step title="Upload Artifact">
+    ```yaml
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: dist
+    ```
+    Packages the `dist/` directory for deployment.
+  </Step>
+</Steps>
+
+### Deploy Job
+
+Runs after build completes:
+
+```yaml
+deploy:
+  runs-on: ubuntu-latest
+  needs: build
+  environment:
+    name: github-pages
+    url: ${{ needs.deploy.outputs.page_url }}
+  steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+```
+
+<Note>
+  The `environment` configuration provides deployment protection rules and displays the live URL in the Actions UI.
+</Note>
+
+## Build Script Details
+
+The inline Python script handles the entire build process:
+
+### Markdown Conversion
+
+```python
+import markdown
+from pathlib import Path
+
+root = Path.cwd()
+readme = root / 'README.md'
+site_dir = root / 'dist'
+site_dir.mkdir(exist_ok=True)
+
+# Common HTML template
+def generate_html(title, body):
+    return f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <style>
+    /* Responsive styles with dark mode support */
+  </style>
+</head>
+<body>
+{body}
+</body>
+</html>
+'''
+
+# Convert README.md to index.html
+html_body = markdown.markdown(
+    readme.read_text(encoding='utf-8'),
+    extensions=[
+        'fenced_code',
+        'tables',
+        'toc',
+        'sane_lists',
+    ],
+)
+(site_dir / 'index.html').write_text(
+    generate_html('256t.org', html_body), 
+    encoding='utf-8'
+)
+```
+
+### CID Index Generation
+
+```python
+import json
+
+cids_dir = root / 'cids'
+cids = sorted([f.name for f in cids_dir.iterdir() if f.is_file()])
+cid_data = []
+
+for cid_name in cids:
+    filepath = cids_dir / cid_name
+    content = filepath.read_bytes()
+    cid_data.append({
+        'cid': cid_name,
+        'cidPreview': cid_name[:20],
+        'textPreview': content[:100].decode('utf-8', errors='replace'),
+        'length': len(content)
+    })
+
+(root / 'cids.json').write_text(
+    json.dumps(cid_data, indent=2), 
+    encoding='utf-8'
+)
+```
+
+### Resource Copying
+
+```python
+import shutil
+
+for item in root.iterdir():
+    if item.name in ['.git', '.github', 'dist']:
+        continue
+    dest = site_dir / item.name
+    if item.is_file():
+        shutil.copy2(item, dest)
+    elif item.is_dir():
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(item, dest)
+```
+
+## Generated Site Structure
+
+The `dist/` directory contains:
+
+```
+dist/
+├── index.html           # Main page (from README.md)
+├── publishing.html      # Publishing guide (from PUBLISHING.md)
+├── faq.html            # FAQ page (from FAQ.md)
+├── cids.json           # CID index metadata
+├── hash.html           # Hash calculator tool
+├── implementations/    # Code in various languages
+├── examples/           # Example test files
+└── cids/              # Content-addressable storage files
+```
+
+## Styling
+
+The generated HTML includes responsive CSS with dark mode support:
+
+```css
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.6;
+}
+
+body {
+  margin: 0 auto;
+  padding: 2rem clamp(2rem, 5vw, 8rem) 4rem;
+  max-width: 140ch;
+}
+
+pre {
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+code {
+  font-family: "JetBrains Mono", "Fira Code", "SFMono-Regular", 
+               Consolas, "Liberation Mono", Menlo, monospace;
+}
+```
+
+## Manual Deployment
+
+To manually trigger a deployment:
+
+<Steps>
+  <Step title="Navigate to Actions">
+    Go to your GitHub repository → **Actions** tab
+  </Step>
+
+  <Step title="Select Workflow">
+    Click on **Deploy site to GitHub Pages** in the workflows list
+  </Step>
+
+  <Step title="Run Workflow">
+    Click **Run workflow** button → Select `main` branch → Click **Run workflow**
+  </Step>
+
+  <Step title="Monitor Progress">
+    Watch the workflow run in real-time. Deployment typically takes 1-2 minutes.
+  </Step>
+</Steps>
+
+## Enabling GitHub Pages
+
+If deploying to a new repository, enable Pages first:
+
+<Steps>
+  <Step title="Repository Settings">
+    Navigate to repository **Settings** → **Pages** (in sidebar)
+  </Step>
+
+  <Step title="Configure Source">
+    - **Source**: GitHub Actions
+    - No need to select a branch (the workflow handles deployment)
+  </Step>
+
+  <Step title="Run Workflow">
+    Trigger the workflow manually or push to `main` branch
+  </Step>
+
+  <Step title="Verify Deployment">
+    Your site will be live at: `https://<username>.github.io/<repo-name>/`
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Workflow Fails with Permission Error">
+    **Problem**: `Error: Resource not accessible by integration`
+
+    **Solution**: Check repository settings:
+    1. Go to **Settings** → **Actions** → **General**
+    2. Under **Workflow permissions**, ensure:
+       - "Read and write permissions" is selected
+       - "Allow GitHub Actions to create and approve pull requests" is checked
+  </Accordion>
+
+  <Accordion title="404 Not Found After Deployment">
+    **Problem**: Site deploys successfully but shows 404
+
+    **Solution**:
+    1. Ensure `index.html` exists in `dist/` directory
+    2. Check Pages settings: **Settings** → **Pages**
+    3. Verify the source is set to "GitHub Actions"
+    4. Wait a few minutes for DNS propagation
+  </Accordion>
+
+  <Accordion title="Styles Not Loading">
+    **Problem**: HTML loads but no styling appears
+
+    **Solution**: Check if CSS is inline in the HTML file. The build script embeds styles in `<style>` tags, so no external CSS files are needed.
+  </Accordion>
+
+  <Accordion title="Build Fails on Markdown Conversion">
+    **Problem**: `ModuleNotFoundError: No module named 'markdown'`
+
+    **Solution**: The workflow should install the `markdown` package. If it fails:
+    1. Check the pip install step in workflow logs
+    2. Verify Python version compatibility (workflow uses Ubuntu's default Python)
+  </Accordion>
+</AccordionGroup>
+
+## Comparison with Cloudflare R2
+
+| Feature | GitHub Pages | Cloudflare R2 |
+|---------|-------------|---------------|
+| **Hosting Cost** | Free | Free tier available |
+| **Custom Domain** | Supported | Supported (with Worker) |
+| **HTTPS** | Automatic | Automatic |
+| **CDN** | GitHub's CDN | Cloudflare's global CDN |
+| **Build Time** | ~1-2 minutes | ~1-2 minutes |
+| **Setup Complexity** | Simple | Requires API token |
+| **CID Storage** | Via static files | Native R2 integration |
+| **Use Case** | Backup/testing | Production hosting |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Cloudflare R2 Deployment" icon="cloud" href="/deployment/cloudflare-r2">
+    Set up production deployment with Cloudflare R2
+  </Card>
+  <Card title="Cloudflare Worker" icon="code" href="/deployment/cloudflare-worker">
+    Configure the routing worker for custom domain
+  </Card>
+</CardGroup>

@@ -1,0 +1,141 @@
+---
+title: "CID Format"
+description: "Detailed specification of the 256t.org Content Identifier (CID) format and structure"
+---
+
+## Overview
+
+A **Content Identifier (CID)** is a base64url-encoded string of up to 94 characters that uniquely identifies content based on its length and cryptographic properties.
+
+<Info>
+The CID format is designed to fit comfortably within URL path segments, filenames, and standard database fields.
+</Info>
+
+## CID Structure
+
+Every CID consists of two parts:
+
+1. **8-character length prefix** - Base64url-encoded content length
+2. **Up to 86 characters** - Either the SHA-512 hash OR the content itself (base64url-encoded)
+
+### Component Breakdown
+
+| Component | Position | Length | Format | Contains |
+|-----------|----------|--------|--------|----------|
+| Length prefix | Characters 1-8 | 8 chars | Base64url | Length of the content |
+| Hash/Content | Characters 9-94 | Up to 86 chars | Base64url | SHA-512 hash (if content > 64 bytes)<br/>Content itself (if content ≤ 64 bytes) |
+
+## Length Prefix Calculation
+
+The 8-character base64url prefix can represent up to **256 terabytes** of content:
+
+```
+8 characters × 6 bits per character = 48 bits
+2^48 = 256 TB
+```
+
+Breaking down 2^48:
+
+```
+2^48 = 2^40 × 2^8
+     = 2^10 × 2^10 × 2^10 × 2^10 × 2^8
+     = 2^8  × 2^10 × 2^10 × 2^10 × 2^10
+     = 256  ×  K   ×  M   ×  G   ×  T
+     = 256 terabytes
+```
+
+<Note>
+The length prefix is always present, regardless of content size. It enables quick content size determination without retrieving the full content.
+</Note>
+
+## Hash/Content Section
+
+The second part of the CID (characters 9-94) varies based on content size:
+
+### For Content > 64 Bytes
+
+Use the **SHA-512 hash** of the content:
+
+```
+SHA-512 hash = 512 bits = 64 bytes
+64 bytes in base64url = 86 characters
+```
+
+Calculation:
+```
+(64 bytes × 8 bits) / 6 bits per base64 character = 85.333... ≈ 86 characters
+```
+
+### For Content ≤ 64 Bytes
+
+Store the **content itself** (base64url-encoded):
+
+- More efficient than hashing
+- No hash collision possible (contains actual content)
+- Uses minimum padding
+- Results in CID length: 8 + length(base64url(content))
+
+<Warning>
+Content of 64 bytes or less SHOULD be stored inline rather than hashed. This is more space-efficient and provides perfect uniqueness.
+</Warning>
+
+## Complete CID Examples
+
+### Small Content (Inline)
+
+For the text `"Hello, 256t.org!"` (16 bytes):
+
+```
+Content length: 16 bytes
+Length prefix: AAAAAAAQ (8 chars)
+Base64url content: SGVsbG8sIDI1NnQub3JnIQ (22 chars)
+Complete CID: AAAAAAAAQSGVsbG8sIDI1NnQub3JnIQ (30 chars total)
+```
+
+### Large Content (Hashed)
+
+For content larger than 64 bytes:
+
+```
+Content length: 1024 bytes
+Length prefix: AAAAAABA (8 chars)
+SHA-512 hash (base64url): [86 characters]
+Complete CID: AAAAAABA[86-character-hash] (94 chars total)
+```
+
+## CID Properties
+
+<Accordion title="Uniqueness">
+CIDs are effectively unique:
+- For content ≤ 64 bytes: **Perfectly unique** (contains actual content)
+- For content > 64 bytes: **Cryptographically unique** (SHA-512 collision resistance)
+</Accordion>
+
+<Accordion title="Immutability">
+CIDs are immutable in practice:
+- Same content always produces same CID
+- Different content produces different CID
+- Changing even one byte changes the entire CID
+</Accordion>
+
+<Accordion title="Cacheability">
+Content can be cached indefinitely:
+- CID uniquely identifies content
+- Content cannot change without CID changing
+- Safe to use `Cache-Control: public, max-age=31536000, immutable`
+</Accordion>
+
+## URL Integration
+
+CIDs are designed to work seamlessly in URLs:
+
+```
+https://example.com/[CID]
+https://256t.org/AAAAAABA[hash]/
+```
+
+The last path element (up to 94 characters) defines the content at that URL.
+
+<Info>
+See [Base64url Encoding](/specification/base64url-encoding) for encoding details and [Hash Algorithm](/specification/hash-algorithm) for SHA-512 implementation specifics.
+</Info>

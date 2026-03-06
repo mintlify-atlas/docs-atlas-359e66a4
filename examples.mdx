@@ -1,0 +1,168 @@
+---
+title: 'Example Files'
+description: 'Sample files for testing CID generation and verification across different implementations'
+---
+
+The 256t.org repository includes a comprehensive set of example files in the `examples/` directory that can be used to test CID generation and verification across all implementations.
+
+## 256t-Branded Resources
+
+These files demonstrate the specification with various media types:
+
+| File | Description | Size | CID Preview |
+|------|-------------|------|-------------|
+| [256t.mp4](https://github.com/curtcox/256t.org/blob/main/examples/256t.mp4) | Video explaining the 256t.org content-addressable storage specification ([YouTube version](https://www.youtube.com/watch?v=GrzonG2up5c)) | 30 MB | `AAAAHKBqo...` |
+| [256t.png](https://github.com/curtcox/256t.org/blob/main/examples/256t.png) | Visual representation of the 256t.org concept | 5.9 MB | `AAAAe6bmt...` |
+| [256t_Content_Addressable_Storage_Specification.pdf](https://github.com/curtcox/256t.org/blob/main/examples/256t_Content_Addressable_Storage_Specification.pdf) | PDF documentation of the full specification | 9.5 MB | `AAAAkmTjM...` |
+| [256t_and_the_End_of_Broken_Links.m4a](https://github.com/curtcox/256t.org/blob/main/examples/256t_and_the_End_of_Broken_Links.m4a) | Audio discussion on how 256t.org addresses link rot | 29 MB | `AAAAHJiJ5...` |
+| [256t_logo.jpg](https://github.com/curtcox/256t.org/blob/main/examples/256t_logo.jpg) | 256t.org logo (JPEG format) | 504 KB | `AAAHus76j...` |
+| [256t_logo.png](https://github.com/curtcox/256t.org/blob/main/examples/256t_logo.png) | 256t.org logo (PNG format) | 6 MB | `AAAAXHPvP...` |
+| [256t_qr_code.png](https://github.com/curtcox/256t.org/blob/main/examples/256t_qr_code.png) | QR code linking to 256t.org | 245 KB | `AAADvMsPB...` |
+
+## Power-of-Two Sized Files
+
+These files demonstrate CID behavior at different size boundaries:
+
+| File | Size (bytes) | CID | Inline Storage |
+|------|--------------|-----|----------------|
+| example_000001_bytes.txt | 1 | `AAAAAAABQQ` | Yes |
+| example_000002_bytes.txt | 2 | `AAAAAAACVGg` | Yes |
+| example_000004_bytes.txt | 4 | `AAAAAAAEVGhpcw` | Yes |
+| example_000008_bytes.txt | 8 | `AAAAAAAIVGhpcyBpcyA` | Yes |
+| example_000016_bytes.txt | 16 | `AAAAAAAQVGhpcyBpcyBzYW1wbGUgYw` | Yes |
+| example_000032_bytes.txt | 32 | `AAAAAAAgVGhpcyBpcyBzYW1wbGUgY29udGVudCBmb3IgZGVtb24` | Yes |
+| example_000064_bytes.txt | 64 | `AAAAAABAVGhpcyBpcyBzYW1wbGUgY29udGVudCBmb3IgZGVtb25zdHJhdGluZyBjb250ZW50IGlkZW50aWZpZXJzIGF0IA` | Yes |
+| example_000128_bytes.txt | 128 | `AAAAAACA6UXupKNe-TnUAnfMQkRw_E-8C0kwvk1qNx2OB6O-CFh3LaSx59nqKcwqNLWcTrNKh3QxHdaaWnWnnHFMdEC7Lg` | No (hashed) |
+| example_000256_bytes.txt | 256 | `AAAAAAEAvsTBZYH9BvUYb11XpfGEJm3GJeRpCrc7D92mUYRPSyJWeFNYWM2oUNWAKdC8p8gpc9vFsx-vjn2gc8Va1TKWLQ` | No (hashed) |
+| example_000512_bytes.txt | 512 | `AAAAAAIAxNZhAEBVrGWQWa7RZPpNOdMlULWfLDTrbIj5vTwm5r6cuoY18ZMAqR6sHPDX2TcXcP5c4ez0KYcsRxsL98V3Gw` | No (hashed) |
+| example_001024_bytes.txt | 1,024 | `AAAAAAQAJvGlaFKm72-uOD-PpMbYo-Xq_f1Iu3NgxLwRbFWgL5eOKghdosr3wvzww6QdGr4OpgGRr6ruxJy9nmoTtfIDfw` | No (hashed) |
+| example_002048_bytes.txt | 2,048 | `AAAAAAgA79i7AoFMQ6lUyQSGE_lKpQ5jllhY6oaQ1FXbApgYHIceoxavleWo33CBjHqPTlCgjWo-DIMZRG479LYnS4IeQA` | No (hashed) |
+| example_004096_bytes.txt | 4,096 | `AAAAABAAjzFZcFzqNc3uNn46_zYll0llPF4ZlfsWFE3CzgFVj4qfyaHyXvjNBRdmyadOSVoC1MovMnZ69mdHYYEtYBxc_g` | No (hashed) |
+| example_008192_bytes.txt | 8,192 | `AAAAACAABG6OGMyKnTG3eMLG6FhvrVYwyQt0ddf_Lue-PMHoXWISY_dVfNDqPdUpTESKBopj1SuCVA6JEJ-Re6CAdAfraw` | No (hashed) |
+| example_016384_bytes.txt | 16,384 | `AAAAAEAAjjZ1s2T9CXF8lm9gsCettlRx6yZHDJ-1KWaGKv9a2tw-5SCtOZ4q_xVRvWKYniaPf_L2Gx93_-1rWvLnERD3fA` | No (hashed) |
+| example_032768_bytes.txt | 32,768 | `AAAAAIAAcd4w5IrM9NjxWukHVc0nbrAwn-e69rl2PyQ4w24FzC5Sh1vmjjC3Hgxfy0wYyA-Gh6MEANw4Ui_DkRirdd_oKA` | No (hashed) |
+| example_065536_bytes.txt | 65,536 | `AAAAAQAAE_guv9Xzv4izh34ajX9D3Td6MuN2dBh4XMVNU_JmzhXtGL2P7WtWXsKN4zt5amfqnFj9ttFD4HI0dTMzyOU3VA` | No (hashed) |
+| example_131072_bytes.txt | 131,072 | `AAAAAgAAA4Dn9tJw7Nu69kCMtWI7oiv6H0whSZCV1fGv2HWdZV2vizii3utuQb37xl5rZ7BKmGNARthScukBnN_FSHpdRA` | No (hashed) |
+| example_262144_bytes.txt | 262,144 | `AAAABAAAdGHfESRwLEs_gVa9mcOgCGdoBXGWvdfTGJ3D5k9P2Plzw6DjgJSr1zaXU4OY6pAN5I4fYvcF3iOUZKkF5bDk1A` | No (hashed) |
+| example_524288_bytes.txt | 524,288 | `AAAACAAAuEBh-y19JFsynJKcU2vUMXhFMBDUp_dGgChOl-Bzb82vfw1EWUbO0MDgnk5yKjXVBwu2t49H9Gqr-RlJcHyqWQ` | No (hashed) |
+
+<Note>
+Files ≤ 64 bytes use inline storage (the content itself is base64url-encoded in the CID). Files > 64 bytes use SHA-512 hashing.
+</Note>
+
+## Literary Excerpts
+
+Classic literature excerpts of varying lengths:
+
+| File | Description | Size | CID Preview |
+|------|-------------|------|-------------|
+| alice_in_wonderland_chapter_1.txt | Complete first chapter | 8,522 bytes | `AAAAACFK8...` |
+| alice_in_wonderland_opening.txt | Opening paragraphs | 303 bytes | `AAAAAAEvk...` |
+| common_sense_paine_opening.txt | Thomas Paine's opening | 361 bytes | `AAAAAAFps...` |
+| declaration_of_independence_opening.txt | Declaration opening | 407 bytes | `AAAAAAGXl...` |
+| declaration_of_independence_preamble.txt | Full preamble | 1,064 bytes | `AAAAAAQoa...` |
+| frankenstein_opening.txt | Mary Shelley's opening | 290 bytes | `AAAAAAEio...` |
+| gettysburg_address.txt | Complete address | 1,511 bytes | `AAAAAAXnp...` |
+| gettysburg_address_opening.txt | Famous opening line | 177 bytes | `AAAAAACxP...` |
+| hamlet_to_be_or_not_to_be.txt | Famous soliloquy | 198 bytes | `AAAAAADGp...` |
+| moby_dick_call_me_ishmael.txt | Opening passage | 306 bytes | `AAAAAAEy6...` |
+| moby_dick_chapter_1.txt | Complete first chapter | 12,262 bytes | `AAAAAC_mN...` |
+| moby_dick_opening.txt | Extended opening | 819 bytes | `AAAAAAMzJ...` |
+| pride_and_prejudice_chapter_1.txt | Complete first chapter | 4,486 bytes | `AAAAABGG...` |
+| pride_and_prejudice_opening.txt | Famous opening sentence | 822 bytes | `AAAAAAM2Z...` |
+| tale_of_two_cities_opening.txt | "Best of times" passage | 287 bytes | `AAAAAAEfL...` |
+
+## Poetry
+
+| File | Description | Size | CID Preview |
+|------|-------------|------|-------------|
+| jabberwocky_excerpt.txt | Lewis Carroll excerpt | 128 bytes | `AAAAAACAmG...` |
+| jabberwocky_opening.txt | Opening stanza | 264 bytes | `AAAAAAEIRBu...` |
+| ozymandias.txt | Shelley's complete poem | 633 bytes | `AAAAAAJ5nx_...` |
+| shakespeare_sonnet_18.txt | "Shall I compare thee" | 640 bytes | `AAAAAAKANHMw...` |
+| sonnet_18.txt | Complete Sonnet 18 | 629 bytes | `AAAAAAJ1GSn...` |
+| the_raven_opening.txt | Poe's opening stanzas | 732 bytes | `AAAAAALcKt...` |
+| the_raven_first_stanza.txt | First stanza only | 337 bytes | `AAAAAAFRO9CM...` |
+| the_road_not_taken.txt | Frost's complete poem | 746 bytes | `AAAAAALqSdc...` |
+| road_not_taken.txt | Alternative version | 732 bytes | `AAAAAALcmyIn...` |
+
+## Historical Documents
+
+| File | Description | Size | CID Preview |
+|------|-------------|------|-------------|
+| i_have_a_dream_excerpt.txt | MLK Jr. famous passage | 794 bytes | `AAAAAAMaoqF...` |
+| magna_carta_excerpt.txt | Excerpt from Magna Carta | 381 bytes | `AAAAAAF99Ba...` |
+| newton_first_law.txt | Newton's first law | 708 bytes | `AAAAAALEMuS...` |
+| origin_of_species_intro.txt | Darwin's introduction | 380 bytes | `AAAAAAF8UZ6...` |
+| plato_allegory_cave_excerpt.txt | Plato's cave allegory | 1,062 bytes | `AAAAAAQmDkM...` |
+| preamble_us_constitution.txt | U.S. Constitution preamble | 328 bytes | `AAAAAAFIU7w...` |
+
+## SVG Graphics
+
+Simple SVG files demonstrating CID computation for structured text:
+
+| File | Description | Size | CID Preview |
+|------|-------------|------|-------------|
+| blue_square.svg | Blue square | 132 bytes | `AAAAAACEk3U...` |
+| checkmark.svg | Checkmark symbol | 178 bytes | `AAAAAACy3Ex...` |
+| flower.svg | Flower design | 496 bytes | `AAAAAAHwU8A...` |
+| green_triangle.svg | Green triangle | 125 bytes | `AAAAAAB9a2J...` |
+| heart.svg | Heart shape | 212 bytes | `AAAAAADUui5...` |
+| house.svg | House icon | 254 bytes | `AAAAAAD-omu...` |
+| moon.svg | Moon icon | 167 bytes | `AAAAAACnSr5...` |
+| red_circle.svg | Red circle | 120 bytes | `AAAAAAB4z4W...` |
+| smiley_face.svg | Smiley face | 322 bytes | `AAAAAAFCr8W...` |
+| sun.svg | Sun icon | 728 bytes | `AAAAAALYTOg...` |
+| tree.svg | Tree icon | 182 bytes | `AAAAAAC2JQg...` |
+| yellow_star.svg | Yellow star | 165 bytes | `AAAAAAClV5n...` |
+
+## Meta Content
+
+Files about the specification itself:
+
+| File | Description | Size | CID Preview |
+|------|-------------|------|-------------|
+| short_greeting_content_addressable_storage_demo.txt | Demo greeting | 34 bytes | `AAAAAAAiSGV...` |
+| lorem_ipsum.txt | Lorem ipsum text | 446 bytes | `AAAAAAG-C3s...` |
+| the_north_wind_and_the_sun.txt | Aesop's fable | 436 bytes | `AAAAAAG0b2j...` |
+| audio_script.md | Script for audio file | 8,016 bytes | - |
+| video_script.md | Script for video file | 6,393 bytes | - |
+| example_selection_reflection.txt | Reflection on examples | 3,504 bytes | `AAAAAA2w3KW...` |
+| claude_reflection_on_example_selection.txt | AI reflection | 13,753 bytes | `AAAAADW54XM...` |
+| claude_sonnet_4_5_reflection_on_b6a710a.txt | AI model reflection | 13,361 bytes | `AAAAADQxLFB...` |
+
+## Testing Your Implementation
+
+All example files are documented in `cids.json` with their expected CIDs. To test your implementation:
+
+1. **Generate CIDs** for all example files using your implementation
+2. **Compare results** with the expected CIDs in `cids.json`
+3. **Verify** that your CIDs match exactly
+
+Each implementation should include:
+- `cid.*` - Core library for CID computation
+- `generate.*` - Script to generate CIDs for example files
+- `check.*` - Script to verify CIDs match expected values
+
+## Using the Online Tools
+
+You can test CID generation without writing code using the online tools:
+
+- **[Hash Calculator](https://256t.org/hash.html)** - Type text and instantly see its SHA-512 hash in Base64URL
+- **[CID Examples](https://256t.org/examples.html)** - Select example files and verify their CIDs using the ECMAScript implementation
+- **[File CID Check](https://256t.org/check.html)** - Drag and drop files to analyze their content and calculate their CID
+- **[CID Download](https://256t.org/download.html)** - Download and verify content from a 256t.org compatible server using a CID
+
+## Key Observations
+
+<Info>
+**Inline vs Hashed Storage**
+
+Notice how files ≤ 64 bytes have shorter CIDs because the content is stored inline rather than hashed. This is a key optimization in the 256t.org specification.
+</Info>
+
+<Tip>
+**Deterministic Across Languages**
+
+All implementations produce identical CIDs for the same content, regardless of programming language. This demonstrates the specification's consistency and portability.
+</Tip>

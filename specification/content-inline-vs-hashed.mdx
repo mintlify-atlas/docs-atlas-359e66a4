@@ -1,0 +1,341 @@
+---
+title: "Content: Inline vs Hashed"
+description: "Understanding when content is stored inline versus hashed in 256t.org CIDs"
+---
+
+## Overview
+
+A key optimization in 256t.org is the **64-byte threshold** that determines whether content is stored inline or as a hash.
+
+<Info>
+This optimization makes CIDs more efficient for small content while maintaining strong cryptographic properties for larger content.
+</Info>
+
+## The 64-Byte Threshold
+
+The decision point is simple:
+
+```
+IF content length ≤ 64 bytes:
+  Store content inline (base64url encoded)
+ELSE:
+  Store SHA-512 hash of content
+```
+
+## Why 64 Bytes?
+
+The threshold is based on the mathematical relationship between content size and hash size:
+
+### Hash Size
+
+```
+SHA-512 output: 64 bytes
+Base64url encoding: 86 characters
+```
+
+Calculation:
+```
+(64 bytes × 8 bits) / 6 bits per character = 85.333...
+⌈85.333...⌉ = 86 characters
+```
+
+### Maximum Inline Content Size
+
+```
+Maximum inline content: 64 bytes
+Base64url encoding: ≤ 86 characters
+```
+
+<Note>
+Content of 64 bytes or less encodes to 86 or fewer base64url characters—the same space as a SHA-512 hash.
+</Note>
+
+### Space Efficiency
+
+At 64 bytes, inline storage is **equally or more efficient** than hashing:
+
+| Content Size | Inline (chars) | Hashed (chars) | Winner |
+|--------------|----------------|----------------|--------|
+| 1 byte | 2 | 86 | Inline (43× smaller) |
+| 16 bytes | 22 | 86 | Inline (4× smaller) |
+| 32 bytes | 43 | 86 | Inline (2× smaller) |
+| 48 bytes | 64 | 86 | Inline (1.3× smaller) |
+| **64 bytes** | **86** | **86** | **Equal** |
+| 65 bytes | 87 | 86 | Hashed (1 char smaller) |
+| 1024 bytes | 1366 | 86 | Hashed (16× smaller) |
+
+## Inline Content (≤ 64 bytes)
+
+### How It Works
+
+1. **Encode content directly**
+   ```
+   Content (bytes) → Base64url encoding → Inline string
+   ```
+
+2. **Build CID**
+   ```
+   CID = lengthPrefix (8 chars) + base64url(content)
+   ```
+
+3. **Total length**
+   ```
+   Length = 8 + ⌈(contentBytes × 8) / 6⌉ characters
+   ```
+
+### Example: 16-Byte Content
+
+```javascript
+const content = "Hello, 256t.org!";
+const bytes = new TextEncoder().encode(content); // 16 bytes
+
+const lengthPrefix = "AAAAAAAQ"; // 16 in base64url (8 chars)
+const contentB64 = "SGVsbG8sIDI1NnQub3JnIQ"; // 22 chars
+const cid = lengthPrefix + contentB64;
+// Result: AAAAAAAAQSGVsbG8sIDI1NnQub3JnIQ (30 chars)
+```
+
+<Accordion title="Benefits of Inline Storage">
+- **Perfect uniqueness**: No hash collisions possible
+- **Space efficiency**: No wasted space for tiny content
+- **Instant verification**: Content is immediately available
+- **No hashing overhead**: Faster CID generation
+- **Reversible**: Can extract original content from CID
+</Accordion>
+
+### Common Inline Content
+
+<Accordion title="Short Text">
+```
+"OK" (2 bytes) → CID length: 11 chars
+"Hello World" (11 bytes) → CID length: 23 chars
+"Error: Not Found" (16 bytes) → CID length: 30 chars
+```
+</Accordion>
+
+<Accordion title="Small Data Structures">
+```json
+{"id":123} (10 bytes) → CID length: 22 chars
+{"status":"ok"} (15 bytes) → CID length: 28 chars
+```
+</Accordion>
+
+<Accordion title="Identifiers and Keys">
+```
+UUID (16 bytes) → CID length: 30 chars
+API keys (32 bytes) → CID length: 51 chars
+Short tokens (48 bytes) → CID length: 72 chars
+```
+</Accordion>
+
+## Hashed Content (> 64 bytes)
+
+### How It Works
+
+1. **Hash the content**
+   ```
+   Content (bytes) → SHA-512 → Hash (64 bytes)
+   ```
+
+2. **Encode hash**
+   ```
+   Hash (64 bytes) → Base64url → Hash string (86 chars)
+   ```
+
+3. **Build CID**
+   ```
+   CID = lengthPrefix (8 chars) + base64url(hash)
+   ```
+
+4. **Total length**
+   ```
+   Always 94 characters (8 + 86)
+   ```
+
+### Example: 1024-Byte Content
+
+```javascript
+const content = new Uint8Array(1024); // 1 KB of data
+
+const lengthPrefix = "AAAAAABA"; // 1024 in base64url (8 chars)
+const hash = sha512(content); // 64 bytes
+const hashB64 = toBase64url(hash); // 86 chars
+const cid = lengthPrefix + hashB64;
+// Result: AAAAAABA[86-character-hash] (94 chars total)
+```
+
+<Accordion title="Benefits of Hashed Storage">
+- **Fixed size**: Always 94 characters regardless of content size
+- **Privacy**: Hash doesn't reveal original content
+- **Cryptographic security**: SHA-512 collision resistance
+- **Bandwidth efficiency**: Transmit 94 chars instead of megabytes
+- **Deduplication**: Identical content produces identical CID
+</Accordion>
+
+### Common Hashed Content
+
+<Accordion title="Documents">
+```
+Text files: 1 KB - 1 MB → CID: 94 chars
+JSON documents: 100 bytes - 10 MB → CID: 94 chars
+Source code: 1 KB - 1 MB → CID: 94 chars
+```
+</Accordion>
+
+<Accordion title="Media Files">
+```
+Images: 10 KB - 10 MB → CID: 94 chars
+Audio: 100 KB - 100 MB → CID: 94 chars
+Video: 1 MB - 1 GB → CID: 94 chars
+```
+</Accordion>
+
+<Accordion title="Binary Data">
+```
+Executables: 100 KB - 100 MB → CID: 94 chars
+Archives: 1 MB - 1 GB → CID: 94 chars
+Databases: 10 MB - 10 GB → CID: 94 chars
+```
+</Accordion>
+
+## Edge Case: Exactly 64 Bytes
+
+Content of **exactly 64 bytes** can be handled either way:
+
+```
+64 bytes inline → 86 base64url characters
+64 bytes hashed → 86 base64url characters (hash)
+```
+
+<Warning>
+The specification allows both approaches for exactly 64 bytes, but **inline storage is preferred** for consistency and efficiency.
+</Warning>
+
+### Recommended: Inline
+
+```javascript
+if (content.length <= 64) {
+  // Store inline (includes exactly 64 bytes)
+  return lengthPrefix + toBase64url(content);
+}
+```
+
+## Implementation Decision Tree
+
+```
+                    Start
+                      |
+                      v
+            Get content length
+                      |
+                      v
+          Is length ≤ 64 bytes?
+              /              \
+            Yes               No
+             |                 |
+             v                 v
+    Store inline          Compute SHA-512
+             |                 |
+             v                 v
+    Base64url encode     Base64url encode
+       content               hash (64 bytes)
+             |                 |
+             v                 v
+    Prepend length       Prepend length
+       prefix (8)           prefix (8)
+             |                 |
+             v                 v
+        Return CID         Return CID
+      (8-94 chars)        (always 94 chars)
+```
+
+## Verification Process
+
+How to verify a CID matches content:
+
+### For Inline Content
+
+```javascript
+function verifyInline(cid, content) {
+  // Extract length from first 8 characters
+  const lengthPrefix = cid.substring(0, 8);
+  const declaredLength = fromBase64url(lengthPrefix);
+  
+  // Check content length matches
+  if (content.length !== declaredLength) return false;
+  if (declaredLength > 64) return false; // Should be hashed
+  
+  // Extract and decode inline content
+  const encodedContent = cid.substring(8);
+  const decodedContent = fromBase64url(encodedContent);
+  
+  // Compare byte-for-byte
+  return bytesEqual(content, decodedContent);
+}
+```
+
+### For Hashed Content
+
+```javascript
+function verifyHashed(cid, content) {
+  // Extract length from first 8 characters
+  const lengthPrefix = cid.substring(0, 8);
+  const declaredLength = fromBase64url(lengthPrefix);
+  
+  // Check content length matches
+  if (content.length !== declaredLength) return false;
+  if (declaredLength <= 64) return false; // Should be inline
+  
+  // Extract expected hash
+  const expectedHash = cid.substring(8, 94);
+  
+  // Compute actual hash
+  const actualHash = toBase64url(sha512(content));
+  
+  // Compare hashes
+  return expectedHash === actualHash;
+}
+```
+
+## Performance Implications
+
+### Inline Content
+
+**Advantages**:
+- No hashing computation required
+- Faster CID generation
+- Instant content extraction from CID
+- Lower CPU usage
+
+**Disadvantages**:
+- Variable CID length
+- Content is visible in CID
+
+### Hashed Content
+
+**Advantages**:
+- Fixed CID length (easier to index)
+- Content privacy (hash doesn't reveal content)
+- Massive space savings for large content
+
+**Disadvantages**:
+- SHA-512 computation required
+- Cannot extract content from CID
+- Must store content separately
+
+<Info>
+For comprehensive implementation examples, see the [implementations directory](https://github.com/curtcox/256t.org/tree/main/implementations) with code in 40+ programming languages.
+</Info>
+
+## Summary Table
+
+| Aspect | Inline (≤ 64 bytes) | Hashed (> 64 bytes) |
+|--------|---------------------|---------------------|
+| **CID Length** | 8 to 94 characters | Always 94 characters |
+| **Storage** | Content itself | SHA-512 hash |
+| **Uniqueness** | Perfect (actual content) | Cryptographic (hash) |
+| **Privacy** | Content visible | Content hidden |
+| **Performance** | Faster (no hashing) | Slower (hashing required) |
+| **Reversible** | Yes (extract content) | No (must store separately) |
+| **Collisions** | Impossible | Cryptographically infeasible |
+| **Use Case** | Short messages, keys, IDs | Documents, files, media |

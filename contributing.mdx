@@ -1,0 +1,354 @@
+---
+title: 'Contributing'
+description: 'How to contribute to 256t.org - add implementations, report issues, and improve documentation'
+---
+
+Contributions to 256t.org are welcome! This guide explains how to add new implementations, report issues, and help improve the specification and documentation.
+
+## Ways to Contribute
+
+There are several ways to contribute to the 256t.org project:
+
+- **Add implementations** in new programming languages
+- **Improve existing implementations** with optimizations or better code quality
+- **Report issues** or suggest improvements to the specification
+- **Improve documentation** with clarifications, examples, or corrections
+- **Add example files** that test edge cases or interesting scenarios
+- **Enhance tools** like the hash calculator or CID checker
+
+## Adding a New Implementation
+
+Each language implementation should follow a consistent structure to ensure compatibility and ease of testing.
+
+### Implementation Structure
+
+Every implementation should include three components:
+
+<Steps>
+  <Step title="Core Library (cid.*)">
+    The main library file that implements CID computation and verification.
+
+    **Required functions:**
+    - Compute CID from content (bytes or string)
+    - Verify that content matches a given CID
+    - Handle both inline storage (≤ 64 bytes) and hashed storage (> 64 bytes)
+  </Step>
+
+  <Step title="Generate Script (generate.*)">
+    A script that generates CIDs for all example files in the `examples/` directory.
+
+    **Output format:**
+    - Should match the structure in `cids.json`
+    - Include CID, file path, and optionally file size
+    - Can output to console or file
+  </Step>
+
+  <Step title="Check Script (check.*)">
+    A script that verifies example files match their expected CIDs from `cids.json`.
+
+    **Validation:**
+    - Read expected CIDs from `cids.json`
+    - Compute actual CIDs for example files
+    - Report any mismatches
+    - Exit with non-zero status on failure
+  </Step>
+</Steps>
+
+### Implementation Requirements
+
+All implementations must follow these technical requirements:
+
+<AccordionGroup>
+  <Accordion title="Base64URL Encoding">
+    Use filename and URL safe Base64 encoding as defined in [RFC 4648 section 5](https://datatracker.ietf.org/doc/html/rfc4648#section-5):
+    - Replace `+` with `-`
+    - Replace `/` with `_`
+    - **No padding** characters (`=`)
+  </Accordion>
+
+  <Accordion title="Length Encoding">
+    Encode content length as an 8-character base64url string:
+    - Represents 48 bits (6 bytes)
+    - Can represent up to 256 terabytes
+    - Must be exactly 8 characters (pad with leading zeros if needed)
+  </Accordion>
+
+  <Accordion title="Content Storage Rules">
+    **For content ≤ 64 bytes:**
+    - Base64url encode the content itself
+    - Prepend with 8-character length prefix
+    - Total CID length: 8 + encoded content length
+
+    **For content > 64 bytes:**
+    - Compute SHA-512 hash of the raw content
+    - Base64url encode the hash (86 characters)
+    - Prepend with 8-character length prefix
+    - Total CID length: 94 characters
+  </Accordion>
+
+  <Accordion title="SHA-512 Hashing">
+    Use SHA-512 for all content > 64 bytes:
+    - Hash the raw bytes (not base64-encoded)
+    - Produces 64 bytes (512 bits)
+    - Base64url encode the hash to 86 characters
+  </Accordion>
+</AccordionGroup>
+
+### Example Implementation Steps
+
+1. **Create implementation directory:**
+   ```bash
+   mkdir implementations/your-language
+   cd implementations/your-language
+   ```
+
+2. **Implement core CID library** (`cid.*`):
+   - Load or receive content as bytes
+   - Calculate content length
+   - Apply inline or hash logic
+   - Return properly formatted CID
+
+3. **Create generate script** (`generate.*`):
+   ```bash
+   # Example: generate CIDs for all example files
+   ./generate.sh > output.json
+   ```
+
+4. **Create check script** (`check.*`):
+   ```bash
+   # Example: verify against expected CIDs
+   ./check.sh  # exits 0 if all match, non-zero otherwise
+   ```
+
+5. **Test against example files:**
+   - Run your implementation on files in `examples/`
+   - Compare output with CIDs in `cids.json`
+   - All CIDs must match exactly
+
+6. **Add documentation:**
+   - Include a README in your implementation directory
+   - Explain how to run the scripts
+   - Note any dependencies
+
+### Reference Implementations
+
+Study existing implementations for guidance:
+
+| Language | Good For Learning |
+|----------|------------------|
+| [Python](https://github.com/curtcox/256t.org/tree/main/implementations/python) | Simple, readable logic |
+| [JavaScript](https://github.com/curtcox/256t.org/tree/main/implementations/ecmascript) | Browser compatibility |
+| [Go](https://github.com/curtcox/256t.org/tree/main/implementations/go) | Performance optimization |
+| [Bash](https://github.com/curtcox/256t.org/tree/main/implementations/bash) | Minimal dependencies |
+
+## Testing Your Implementation
+
+### Using Example Files
+
+The repository includes comprehensive example files for testing:
+
+<CardGroup cols={2}>
+  <Card title="Power-of-Two Files" icon="binary">
+    Files at 1, 2, 4, 8, 16, 32, 64, 128, 256... bytes to test size boundaries
+  </Card>
+  <Card title="Literary Content" icon="book">
+    Classic literature excerpts of various lengths
+  </Card>
+  <Card title="SVG Graphics" icon="image">
+    Structured text files with special characters
+  </Card>
+  <Card title="Large Media" icon="file">
+    Video, audio, PDF files up to 30 MB
+  </Card>
+</CardGroup>
+
+See the [Examples](/examples) page for a complete list.
+
+### Validation Steps
+
+1. **Generate CIDs** for all example files
+2. **Compare with `cids.json`** - every CID must match exactly
+3. **Test edge cases:**
+   - Empty content (0 bytes)
+   - Exactly 64 bytes (boundary between inline and hashed)
+   - Large files (> 1 MB)
+   - Binary vs text content
+   - Unicode and special characters
+
+### Continuous Integration
+
+The repository uses GitHub Actions for automated testing. Your implementation can be added to the CI pipeline:
+
+```yaml
+# .github/workflows/cid-checks.yml
+- name: Check Your Language
+  run: |
+    cd implementations/your-language
+    ./check.sh
+```
+
+## Reporting Issues
+
+Found a bug or have a suggestion? Here's how to report it:
+
+### GitHub Issues
+
+Open an issue on the [GitHub repository](https://github.com/curtcox/256t.org/issues):
+
+<Steps>
+  <Step title="Check Existing Issues">
+    Search to see if your issue has already been reported
+  </Step>
+
+  <Step title="Provide Details">
+    Include:
+    - Clear description of the problem
+    - Steps to reproduce
+    - Expected vs actual behavior
+    - Your environment (OS, language version, etc.)
+  </Step>
+
+  <Step title="Include Examples">
+    If reporting a CID mismatch:
+    - Share the content (if not sensitive)
+    - Show expected vs actual CID
+    - Note which implementation you're using
+  </Step>
+</Steps>
+
+### GitHub Discussions
+
+For questions, ideas, or general discussion, use [GitHub Discussions](https://github.com/curtcox/256t.org/discussions):
+
+- Ask questions about the specification
+- Propose new features or changes
+- Share use cases and projects
+- Get help with implementations
+
+## Improving Documentation
+
+Documentation improvements are always welcome:
+
+### What to Document
+
+- Clarify confusing parts of the specification
+- Add examples and use cases
+- Fix typos or formatting issues
+- Improve code comments in implementations
+- Create tutorials or guides
+
+### Documentation Structure
+
+The project has several documentation locations:
+
+- **README.md** - Main specification document
+- **FAQ.md** - Frequently asked questions
+- **DEPLOYMENT.md** - Deployment and hosting information
+- **Implementation READMEs** - Language-specific documentation
+- **HTML tools** - In-browser utilities with inline docs
+
+## Pull Request Process
+
+Ready to submit your contribution? Follow these steps:
+
+<Steps>
+  <Step title="Fork and Clone">
+    ```bash
+    git clone https://github.com/YOUR-USERNAME/256t.org.git
+    cd 256t.org
+    ```
+  </Step>
+
+  <Step title="Create a Branch">
+    ```bash
+    git checkout -b add-python-implementation
+    ```
+  </Step>
+
+  <Step title="Make Your Changes">
+    - Add your implementation
+    - Test against example files
+    - Update documentation
+  </Step>
+
+  <Step title="Commit Your Work">
+    ```bash
+    git add implementations/your-language/
+    git commit -m "Add Your Language implementation"
+    ```
+  </Step>
+
+  <Step title="Push and Create PR">
+    ```bash
+    git push origin add-python-implementation
+    ```
+    Then open a pull request on GitHub
+  </Step>
+</Steps>
+
+### PR Guidelines
+
+<Check>**Do:**</Check>
+- Include a clear description of your changes
+- Test your implementation thoroughly
+- Follow existing code style and conventions
+- Update documentation as needed
+- Keep commits focused and well-described
+
+<Warning>**Don't:**</Warning>
+- Submit untested code
+- Mix multiple unrelated changes in one PR
+- Break existing implementations
+- Add unnecessary dependencies
+
+## Code Style
+
+Each language has its own conventions, but follow these general principles:
+
+<CardGroup cols={2}>
+  <Card title="Simplicity" icon="sparkles">
+    Keep implementations simple and readable. Clarity over cleverness.
+  </Card>
+  <Card title="Consistency" icon="arrows-rotate">
+    Match the style of existing implementations in your language.
+  </Card>
+  <Card title="Comments" icon="comment">
+    Explain the CID computation logic, especially around base64url encoding.
+  </Card>
+  <Card title="Independence" icon="cube">
+    Minimize external dependencies. Prefer standard library functions.
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+Need assistance with your contribution?
+
+<CardGroup cols={2}>
+  <Card title="Ask Questions" icon="circle-question" href="https://github.com/curtcox/256t.org/discussions">
+    Use GitHub Discussions for implementation help
+  </Card>
+  <Card title="Report Issues" icon="bug" href="https://github.com/curtcox/256t.org/issues">
+    Open an issue if you find bugs or have problems
+  </Card>
+  <Card title="Review Examples" icon="code" href="/examples">
+    Study the example files and expected CIDs
+  </Card>
+  <Card title="Read the Spec" icon="book" href="/specification/cid-format">
+    Refer to the full specification for details
+  </Card>
+</CardGroup>
+
+## Recognition
+
+Contributors are recognized in the project:
+
+- Listed in GitHub contributors
+- Mentioned in implementation documentation
+- Acknowledged in release notes for significant contributions
+
+Thank you for helping make 256t.org better!
+
+## License
+
+By contributing to 256t.org, you agree that your contributions will be licensed under the same license as the project. See the repository for license details.

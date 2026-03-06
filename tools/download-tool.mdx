@@ -1,0 +1,305 @@
+---
+title: CID Download Tool
+description: Download and verify content from CID-compatible servers
+---
+
+The CID Download Tool fetches content from 256t.org-compatible servers using a Content Identifier (CID) and verifies the content's integrity by recalculating its CID.
+
+## Access the Tool
+
+The Download Tool is available at:
+
+```
+https://256t.org/download.html
+```
+
+## How to Use
+
+<Steps>
+  <Step title="Open the Download Tool">
+    Navigate to [download.html](https://256t.org/download.html) in your browser.
+  </Step>
+  
+  <Step title="Enter a CID URL">
+    Paste or type a full URL that includes a CID, such as:
+    ```
+    https://256t.org/cids/AAAAAAAA...
+    ```
+    The tool automatically extracts the CID from the URL.
+  </Step>
+  
+  <Step title="Review real-time CID status">
+    As you type, the tool displays:
+    - CID format validation
+    - CID type (literal or hash)
+    - Expected content length
+    - Character validation
+    - CORS status for the server
+  </Step>
+  
+  <Step title="View literal content (if applicable)">
+    For literal CIDs (≤ 64 bytes), the content is displayed immediately:
+    - Literal value as text
+    - Hex dump of the bytes
+    No download is required - the content is embedded in the CID itself!
+  </Step>
+  
+  <Step title="Click Download Content">
+    For hash-based CIDs, click the button to:
+    - Fetch the content from the server
+    - Calculate the content's CID
+    - Verify it matches the requested CID
+  </Step>
+  
+  <Step title="Review the results">
+    The tool displays:
+    - Download status (success or failure)
+    - Requested vs. computed CID comparison
+    - Content length and preview
+    - Full downloaded content
+  </Step>
+</Steps>
+
+## Understanding the CID Status Indicators
+
+The tool provides real-time validation as you type the URL:
+
+### CID Format
+
+Indicates whether the extracted CID has valid Base64URL characters and proper length (8-94 characters).
+
+- **Valid** - CID format is correct
+- **Invalid** - CID contains invalid characters or wrong length
+
+### CID Type
+
+Shows whether this is a literal or hash CID:
+
+- **Literal (embedded)** - Content ≤ 64 bytes, embedded in the CID
+- **Hash reference** - Content > 64 bytes, CID contains SHA-512 hash
+
+### Retrieved
+
+Indicates whether content has been successfully downloaded:
+
+- **Not yet** - No download attempted
+- **Yes** - Content downloaded successfully
+- **Failed** - Download failed (see error message)
+
+### Length Indicators
+
+Three different length values are tracked:
+
+- **Length (from CID prefix)** - Expected content length decoded from the CID's first 8 characters
+- **Length (from CID suffix)** - For literal CIDs, the actual decoded content length
+- **Length (retrieved)** - Actual size of downloaded content
+
+These should all match for valid content.
+
+### CID Length
+
+Validates the overall CID length:
+
+- Minimum: 8 characters (empty content)
+- Maximum: 94 characters (8 for length + 86 for hash)
+
+### CID Characters
+
+Verifies all characters are valid Base64URL:
+
+- **Valid** - Only `A-Z`, `a-z`, `0-9`, `-`, `_` characters
+- **Invalid characters** - Contains characters outside Base64URL alphabet
+
+## Understanding Literal CIDs
+
+Literal CIDs are a special feature for small content (≤ 64 bytes):
+
+### What Are Literal CIDs?
+
+Instead of storing a SHA-512 hash, literal CIDs embed the actual content encoded in Base64URL. This means:
+
+- No download required - the content is in the CID itself
+- Instant access to the content
+- Perfect for small text snippets, short messages, or tiny files
+
+### How to Identify Literal CIDs
+
+The tool automatically detects literal CIDs by:
+1. Decoding the length prefix (first 8 characters)
+2. Checking if the length is ≤ 64 bytes
+3. If yes, displaying the embedded content immediately
+
+### Literal CID Display
+
+For literal CIDs, the tool shows:
+
+- **Content Embedded in CID** badge
+- **Literal Value as Text** - The decoded content as a string
+- **Hex Dump** - The raw bytes in hexadecimal format
+
+This content is displayed even before clicking "Download Content" because it's already available in the CID.
+
+<Note>
+**Literal CIDs are not fetched from the server.** The content is decoded directly from the CID string. This makes them perfect for embedding small configuration values, tokens, or short messages in URLs.
+</Note>
+
+## CORS Status Checking
+
+The tool automatically checks if the server allows cross-origin requests:
+
+### What is CORS?
+
+CORS (Cross-Origin Resource Sharing) is a browser security feature that controls whether web pages can make requests to different domains.
+
+### CORS Status Indicators
+
+- **Green (●)** - CORS enabled, downloads will work
+- **Red (✗)** - CORS blocked, downloads will fail
+- **Gray (?)** - CORS status unknown (timeout or error)
+
+### Why CORS Matters
+
+If a server doesn't enable CORS:
+- Browser-based downloads will be blocked
+- You'll see a CORS error when clicking "Download Content"
+- Server needs `Access-Control-Allow-Origin` headers
+
+### CORS Workarounds
+
+If you encounter CORS errors:
+
+1. **Use the server's own domain** - Access the tool from the same domain as the CID server
+2. **Ask the server admin** - Request they enable CORS headers
+3. **Use a browser extension** - Temporarily disable CORS for testing (not recommended for production)
+4. **Use a proxy** - Route requests through a CORS-enabled proxy
+
+<Note>
+CORS checks use a `HEAD` request to test server compatibility without downloading large content. This is non-intrusive and fast.
+</Note>
+
+## Download and Verification Process
+
+Here's what happens when you click "Download Content":
+
+<Steps>
+  <Step title="Extract CID from URL">
+    The tool parses the URL and extracts the CID (the last path segment).
+  </Step>
+  
+  <Step title="Fetch content">
+    An HTTP GET request is made to the full URL to download the content.
+  </Step>
+  
+  <Step title="Calculate CID">
+    The downloaded content is hashed with SHA-512 (or encoded in Base64URL if ≤ 64 bytes).
+  </Step>
+  
+  <Step title="Compare CIDs">
+    The computed CID is compared to the requested CID:
+    - **Match** - Content is verified and authentic
+    - **Mismatch** - Content may be corrupted or tampered with
+  </Step>
+  
+  <Step title="Display results">
+    The tool shows:
+    - Verification status (success or failure icon)
+    - Both CIDs for comparison
+    - Content length and preview
+    - Full content display
+  </Step>
+</Steps>
+
+## Content Display
+
+After downloading, the tool displays:
+
+### Verification Status
+
+- **✓ CID matches! Content verified.** - Download successful and authentic
+- **✗ CID does not match! Content may be corrupted.** - Content integrity check failed
+
+### CID Comparison
+
+- **Requested CID** - What you asked for
+- **Computed CID** - What was calculated from the downloaded content
+
+These should be identical for valid content.
+
+### Content Preview
+
+First 100 characters of the content as text.
+
+### Full Content
+
+The complete downloaded content:
+
+- **Text files** - Displayed with preserved formatting
+- **SVG images** - Rendered visually in the browser
+- **Other content** - Displayed as text
+
+## Use Cases
+
+### Verify Content Integrity
+
+Download content and verify it hasn't been tampered with:
+1. Receive a CID from a trusted source
+2. Download the content using the CID
+3. Tool verifies the content matches the CID
+
+### Test CID Servers
+
+Validate that a server correctly implements the CID protocol:
+1. Upload content to the server
+2. Get the CID URL from the server
+3. Use the Download Tool to verify
+
+### Access Literal Content
+
+Instantly decode small content embedded in CIDs:
+1. Paste a literal CID URL
+2. View the embedded content immediately
+3. No download required
+
+### Debug CORS Issues
+
+Test if a server supports cross-origin requests:
+1. Enter the server's CID URL
+2. Check the CORS status indicator
+3. Identify and fix CORS configuration issues
+
+## Technical Details
+
+The Download Tool uses:
+
+- **Fetch API** for downloading content
+- **Web Crypto API** (`crypto.subtle.digest`) for SHA-512 hashing
+- **URL parsing** to extract CIDs from full URLs
+- **Base64URL encoding/decoding** for CID manipulation
+- **Client-side verification** for content integrity
+
+<Note>
+Requires a modern browser with Fetch API and Web Crypto API support. All major browsers (Chrome, Firefox, Safari, Edge) support these features.
+</Note>
+
+## Security Considerations
+
+### Content Verification
+
+The Download Tool provides cryptographic verification:
+- Downloaded content is hashed and compared to the CID
+- Mismatches indicate tampering or corruption
+- You can trust content that matches its CID
+
+### Literal CID Security
+
+Literal CIDs embed content directly:
+- Anyone with the CID can decode the content
+- Don't use literal CIDs for sensitive data
+- They're perfect for public, small content
+
+### CORS and Privacy
+
+CORS checks protect user privacy:
+- Browsers prevent malicious cross-origin requests
+- Only CORS-enabled servers can be accessed
+- This is a security feature, not a bug

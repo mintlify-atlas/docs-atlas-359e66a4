@@ -1,0 +1,300 @@
+---
+title: "Hash Algorithm"
+description: "SHA-512 hash algorithm specification and implementation details for 256t.org"
+---
+
+## Overview
+
+256t.org uses **SHA-512** (Secure Hash Algorithm 512-bit) for hashing content larger than 64 bytes.
+
+<Info>
+SHA-512 is part of the SHA-2 family of cryptographic hash functions, defined in [FIPS PUB 180-4](https://csrc.nist.gov/publications/detail/fips/180/4/final).
+</Info>
+
+## Why SHA-512?
+
+SHA-512 was chosen for several key reasons:
+
+### Strong Collision Resistance
+
+- **512-bit output**: 2^512 possible hash values
+- **Collision resistance**: ~2^256 operations to find collision (computationally infeasible)
+- **Preimage resistance**: Cannot reverse hash to find original content
+
+### Appropriate Size
+
+```
+SHA-512 output: 64 bytes = 512 bits
+Base64url encoding: 86 characters
+Fits perfectly in CID: 8 (length) + 86 (hash) = 94 characters
+```
+
+<Note>
+SHA-256 would produce only 32 bytes (43 base64url characters), but SHA-512 provides stronger collision resistance with minimal additional overhead due to the inline content optimization.
+</Note>
+
+### Wide Availability
+
+SHA-512 is available in virtually every programming language and cryptographic library:
+
+- Native implementations in most languages
+- Hardware acceleration on modern CPUs
+- Well-tested and standardized
+- FIPS-approved for cryptographic use
+
+## Hash Properties
+
+### Output Size
+
+```
+Bits: 512
+Bytes: 64
+Hex characters: 128
+Base64url characters: 86
+```
+
+Calculation for base64url length:
+```
+(64 bytes × 8 bits) / 6 bits per character = 85.333...
+⌈85.333...⌉ = 86 characters
+```
+
+### Deterministic
+
+SHA-512 always produces the same hash for the same input:
+
+```
+SHA-512("Hello") = always the same 64-byte value
+```
+
+### Avalanche Effect
+
+Changing a single bit in the input completely changes the output:
+
+```
+SHA-512("Hello")  = 3615f80c9d293ed7402687f94b22d58e529b8cc7916f8fac7fddf7fbd5af4cf777d3d795a7a00a16bf7e7f3fb9561ee9baae480da9fe7a18769e71886b03f315
+SHA-512("hello")  = e7c22b994c59d9cf2b48e549b1e24666636045930d3da7c1acb299d1c3b7f931f94aae41edda2c2b207a36e10f8bcb8d45223e54878f5b316e7ce3b6bc019629
+                    ↑ Completely different despite only case change
+```
+
+## When SHA-512 is Used
+
+SHA-512 hashing is applied **only when content exceeds 64 bytes**:
+
+```
+if (contentLength <= 64) {
+  // Store content inline (base64url encoded)
+  cid = lengthPrefix + base64url(content)
+} else {
+  // Use SHA-512 hash
+  cid = lengthPrefix + base64url(sha512(content))
+}
+```
+
+<Warning>
+For content ≤ 64 bytes, hashing is NOT used. The content itself is stored inline in base64url format.
+</Warning>
+
+## Hash Computation Process
+
+### Step-by-Step
+
+1. **Read content as binary data**
+   ```
+   Content: arbitrary bytes
+   ```
+
+2. **Compute SHA-512 hash**
+   ```
+   Hash: 64-byte binary output
+   ```
+
+3. **Encode hash in base64url**
+   ```
+   Hash (base64url): 86-character string
+   ```
+
+4. **Prepend length prefix**
+   ```
+   Length: 8-character base64url encoded content length
+   Complete CID: length + hash = 94 characters
+   ```
+
+## Implementation Examples
+
+### JavaScript (Node.js)
+
+```javascript
+import crypto from 'crypto';
+
+function sha512(data) {
+  return crypto.createHash('sha512').update(data).digest();
+}
+
+// Example usage
+const content = Buffer.from('Your content here');
+const hash = sha512(content);
+console.log(hash.length); // 64 bytes
+```
+
+### Python
+
+```python
+import hashlib
+
+def sha512(data: bytes) -> bytes:
+    return hashlib.sha512(data).digest()
+
+# Example usage
+content = b'Your content here'
+hash_value = sha512(content)
+print(len(hash_value))  # 64 bytes
+```
+
+### Go
+
+```go
+import "crypto/sha512"
+
+func sha512Hash(data []byte) []byte {
+    hash := sha512.Sum512(data)
+    return hash[:]
+}
+
+// Example usage
+content := []byte("Your content here")
+hashValue := sha512Hash(content)
+fmt.Println(len(hashValue)) // 64 bytes
+```
+
+### Rust
+
+```rust
+use sha2::{Sha512, Digest};
+
+fn sha512_hash(data: &[u8]) -> Vec<u8> {
+    let mut hasher = Sha512::new();
+    hasher.update(data);
+    hasher.finalize().to_vec()
+}
+
+// Example usage
+let content = b"Your content here";
+let hash = sha512_hash(content);
+println!("{}", hash.len()); // 64 bytes
+```
+
+## Collision Probability
+
+### Theoretical Security
+
+The probability of finding a SHA-512 collision:
+
+```
+Birthday attack: ~2^256 operations
+Direct attack: ~2^512 operations
+```
+
+To put this in perspective:
+
+<Accordion title="Computational Infeasibility">
+**2^256 operations** would require:
+- More energy than the sun produces in its lifetime
+- More computing power than exists on Earth
+- Billions of years with all current supercomputers combined
+
+In practice, **SHA-512 collisions are not a realistic threat**.
+</Accordion>
+
+### Practical Security
+
+<Info>
+For content ≤ 64 bytes, collisions are **impossible** because the actual content is stored inline, not hashed.
+</Info>
+
+For content > 64 bytes:
+- SHA-512 provides cryptographic-grade collision resistance
+- More likely that an attacker lies about content than engineers a collision
+- Always verify CID content in security-critical applications
+
+## Alternatives Considered
+
+### SHA-256
+
+**Why not used**:
+- Only 32 bytes (43 base64url characters)
+- Lower collision resistance (2^128 vs 2^256)
+- No significant performance advantage
+- Doesn't utilize the full 86-character space efficiently
+
+### SHA-384
+
+**Why not used**:
+- 48 bytes (64 base64url characters)
+- Awkward fit in the 86-character space
+- Less widely used than SHA-512
+
+### Blake2b/Blake3
+
+**Why not used**:
+- Not as universally available
+- SHA-512 is more standardized
+- Compatibility with existing tools and libraries
+
+<Note>
+SHA-512 strikes the optimal balance between security, standardization, and efficient use of the 94-character CID format.
+</Note>
+
+## Verification
+
+To verify correct SHA-512 implementation:
+
+### Test Vector
+
+Input: Empty string `""`
+```
+SHA-512("") = cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e
+```
+
+### Known Content
+
+Input: `"The quick brown fox jumps over the lazy dog"`
+```
+SHA-512(text) = 07e547d9586f6a73f73fbac0435ed76951218fb7d0c8d788a309d785436bbb642e93a252a954f23912547d1e8a3b5ed6e1bfd7097821233fa0538f3db854fee6
+```
+
+<Warning>
+Always test your SHA-512 implementation against known test vectors before using it in production.
+</Warning>
+
+## Performance Considerations
+
+### Hardware Acceleration
+
+Modern CPUs include SHA instruction set extensions:
+- Intel SHA Extensions
+- ARM Cryptography Extensions
+- AMD processors (Zen and later)
+
+These can accelerate SHA-512 by 2-10×.
+
+### Streaming vs. One-Shot
+
+For large files, use streaming hash computation:
+
+```javascript
+// Good: Streaming (memory efficient)
+const hash = crypto.createHash('sha512');
+stream.on('data', chunk => hash.update(chunk));
+stream.on('end', () => {
+  const result = hash.digest();
+});
+
+// Bad: One-shot (loads entire file into memory)
+const content = fs.readFileSync('large-file.bin');
+const hash = crypto.createHash('sha512').update(content).digest();
+```
+
+<Info>
+See the [implementations directory](https://github.com/curtcox/256t.org/tree/main/implementations) for optimized SHA-512 usage in 40+ languages.
+</Info>

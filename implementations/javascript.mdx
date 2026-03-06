@@ -1,0 +1,306 @@
+---
+title: JavaScript Implementation
+description: Use 256t.org CIDs in JavaScript and Node.js applications
+icon: js
+---
+
+The JavaScript implementation provides a lightweight, zero-dependency library for computing and verifying content identifiers in Node.js environments.
+
+## Installation
+
+No installation required! The implementation uses only Node.js built-in modules.
+
+```bash
+# Clone the repository
+git clone https://github.com/curtcox/256t.org.git
+cd 256t.org/implementations/javascript
+```
+
+## Quick Start
+
+<CodeGroup>
+
+```javascript CommonJS
+const { computeCid, downloadCid } = require('./cid.js');
+
+// Compute CID from content
+const content = Buffer.from('Hello, World!');
+const cid = computeCid(content);
+console.log(cid);
+// Output: AAAAAAAAAAAAAAATSGVsbG8sIFdvcmxkIQ
+
+// Download and verify
+downloadCid('https://256t.org', cid)
+  .then(({ content, computed, isValid }) => {
+    console.log('Valid:', isValid);
+  });
+```
+
+```javascript ES Modules
+import { computeCid, downloadCid } from './cid.js';
+
+// Compute CID
+const cid = computeCid(Buffer.from('Hello!'));
+
+// Verify downloaded content
+const result = await downloadCid('https://256t.org', cid);
+if (result.isValid) {
+  console.log('Content verified!');
+}
+```
+
+</CodeGroup>
+
+## API Reference
+
+### computeCid(content)
+
+Computes a content identifier from binary data.
+
+**Parameters:**
+- `content` (Buffer): The content to hash
+
+**Returns:** `string` - The computed CID
+
+**Example:**
+```javascript
+const cid = computeCid(Buffer.from('test content'));
+```
+
+**Implementation:**
+```javascript
+const computeCid = (content) => {
+  const prefix = encodeLength(content.length);
+  const suffix =
+    content.length <= 64
+      ? toBase64Url(content)
+      : toBase64Url(crypto.createHash('sha512').update(content).digest());
+  return `${prefix}${suffix}`;
+};
+```
+
+<Note>
+  For content ≤64 bytes, the CID contains the content itself. For larger content, it contains a SHA-512 hash.
+</Note>
+
+### downloadCid(baseUrl, cid)
+
+Downloads content from a URL and validates its CID.
+
+**Parameters:**
+- `baseUrl` (string): Base URL (e.g., `'https://256t.org'`)
+- `cid` (string): The content identifier to fetch
+
+**Returns:** `Promise<DownloadResult>`
+
+```typescript
+interface DownloadResult {
+  content: Buffer;   // Downloaded content
+  computed: string;  // Computed CID from content
+  isValid: boolean;  // Whether computed matches expected CID
+}
+```
+
+**Example:**
+```javascript
+try {
+  const result = await downloadCid('https://256t.org', cid);
+  if (result.isValid) {
+    console.log('Downloaded:', result.content.toString());
+  } else {
+    console.error('CID mismatch!', result.computed);
+  }
+} catch (error) {
+  console.error('Download failed:', error.message);
+}
+```
+
+### Helper Functions
+
+#### toBase64Url(buffer)
+
+Converts a Buffer to base64url encoding (URL-safe base64 without padding).
+
+```javascript
+const toBase64Url = (buffer) =>
+  buffer
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+```
+
+#### encodeLength(length)
+
+Encodes content length as a 6-byte base64url string.
+
+```javascript
+const encodeLength = (length) => {
+  const bytes = Buffer.alloc(6);
+  bytes.writeUIntBE(length, 0, 6);
+  return toBase64Url(bytes);
+};
+```
+
+## Complete Example
+
+Here's a complete example demonstrating CID generation and verification:
+
+```javascript cid.js
+const crypto = require('crypto');
+const https = require('https');
+
+const toBase64Url = (buffer) =>
+  buffer
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+const encodeLength = (length) => {
+  const bytes = Buffer.alloc(6);
+  bytes.writeUIntBE(length, 0, 6);
+  return toBase64Url(bytes);
+};
+
+const computeCid = (content) => {
+  const prefix = encodeLength(content.length);
+  const suffix =
+    content.length <= 64
+      ? toBase64Url(content)
+      : toBase64Url(crypto.createHash('sha512').update(content).digest());
+  return `${prefix}${suffix}`;
+};
+
+const downloadCid = (baseUrl, cid) => {
+  return new Promise((resolve, reject) => {
+    const url = `${baseUrl.replace(/\/$/, '')}/${cid}`;
+    https.get(url, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
+        return;
+      }
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => {
+        const content = Buffer.concat(chunks);
+        const computed = computeCid(content);
+        const isValid = computed === cid;
+        resolve({ content, computed, isValid });
+      });
+    }).on('error', reject);
+  });
+};
+
+module.exports = { computeCid, downloadCid };
+```
+
+## Usage Examples
+
+<Tabs>
+  <Tab title="File Hashing">
+    ```javascript
+    const fs = require('fs');
+    const { computeCid } = require('./cid.js');
+
+    // Read file and compute CID
+    const content = fs.readFileSync('document.pdf');
+    const cid = computeCid(content);
+    
+    console.log(`CID: ${cid}`);
+    console.log(`Length: ${content.length} bytes`);
+    ```
+  </Tab>
+  
+  <Tab title="Content Verification">
+    ```javascript
+    const { downloadCid, computeCid } = require('./cid.js');
+
+    async function verifyContent(url, expectedCid) {
+      const result = await downloadCid(url, expectedCid);
+      
+      if (result.isValid) {
+        console.log('✓ Content integrity verified');
+        return result.content;
+      } else {
+        throw new Error(
+          `CID mismatch! Expected: ${expectedCid}, Got: ${result.computed}`
+        );
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Batch Processing">
+    ```javascript
+    const fs = require('fs');
+    const path = require('path');
+    const { computeCid } = require('./cid.js');
+
+    // Process all files in a directory
+    const examplesDir = './examples';
+    const files = fs.readdirSync(examplesDir);
+
+    files.forEach(file => {
+      const filePath = path.join(examplesDir, file);
+      const content = fs.readFileSync(filePath);
+      const cid = computeCid(content);
+      
+      console.log(`${file}: ${cid}`);
+      
+      // Save CID to file
+      fs.writeFileSync(
+        path.join('./cids', cid),
+        content
+      );
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Testing
+
+The implementation includes comprehensive test scripts:
+
+```bash
+# Generate CIDs for all examples
+node generate.js
+
+# Verify all CIDs
+node check.js
+```
+
+## TypeScript Support
+
+For TypeScript projects, see the [TypeScript implementation](/implementations/all-languages#typescript) which includes full type definitions.
+
+## Browser Compatibility
+
+This implementation uses Node.js built-ins (`crypto`, `https`). For browser support:
+
+<Steps>
+  <Step title="Use Web Crypto API">
+    Replace `crypto.createHash()` with `crypto.subtle.digest()`
+  </Step>
+  <Step title="Use Fetch API">
+    Replace `https.get()` with `fetch()`
+  </Step>
+  <Step title="See Deno/ECMAScript implementations">
+    Check [all-languages](/implementations/all-languages) for browser-compatible versions
+  </Step>
+</Steps>
+
+## Performance
+
+<Info>
+  The JavaScript implementation is optimized for:
+  - Small files: Direct base64url encoding (microseconds)
+  - Large files: Native SHA-512 hashing via Node.js crypto module
+  - Memory efficiency: Streaming for large downloads
+</Info>
+
+## Related Implementations
+
+- [TypeScript](/implementations/all-languages#typescript) - Type-safe implementation
+- [Deno](/implementations/all-languages#deno) - Modern runtime version
+- [ECMAScript](/implementations/all-languages#ecmascript) - Standards-compliant version

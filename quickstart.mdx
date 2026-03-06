@@ -1,80 +1,374 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Compute and verify your first content identifier (CID) in minutes
 ---
 
-## Get started in three steps
+This guide will walk you through computing and verifying content identifiers (CIDs) using the 256t.org specification.
 
-Get your documentation site running locally and make your first customization.
+## What You'll Learn
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Understand CID Structure">
+    Learn the components of a content identifier
+  </Step>
+  <Step title="Compute a CID">
+    Generate CIDs using implementations in Python, JavaScript, or Go
+  </Step>
+  <Step title="Verify Content">
+    Validate that content matches its claimed CID
+  </Step>
+</Steps>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+## Quick Example
+
+Let's start with a simple example. The text `"This"` (4 bytes) generates the following CID:
+
+```
+Content: This
+Length:  4 bytes
+CID:     AAAAAAAEVGhpcw
+```
+
+Breaking down the CID:
+- `AAAAAAAE` - Length prefix (8 characters encoding the number 4)
+- `VGhpcw` - Base64url encoding of "This"
+
+<Note>
+For content ≤ 64 bytes, the CID contains the actual content (base64url-encoded). For larger content, it contains a SHA-512 hash instead.
+</Note>
+
+## Computing a CID
+
+Choose your preferred language to get started:
+
+<CodeGroup>
+```python Python
+import base64
+import hashlib
+
+def to_base64url(data: bytes) -> str:
+    """Encode bytes as base64url (RFC 4648 Section 5)"""
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+def encode_length(length: int) -> str:
+    """Encode content length as 8-character base64url string"""
+    return to_base64url(length.to_bytes(6, "big"))
+
+def compute_cid(content: bytes) -> str:
+    """Compute the content identifier for given content"""
+    prefix = encode_length(len(content))
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    if len(content) <= 64:
+        # Small content: store inline
+        suffix = to_base64url(content)
+    else:
+        # Large content: store SHA-512 hash
+        suffix = to_base64url(hashlib.sha512(content).digest())
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    return prefix + suffix
 
-### Step 2: Deploy your changes
+# Example usage
+content = b"This"
+cid = compute_cid(content)
+print(f"CID: {cid}")
+# Output: CID: AAAAAAAEVGhpcw
+```
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+```javascript JavaScript
+const crypto = require('crypto');
+
+function toBase64Url(buffer) {
+  return buffer
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function encodeLength(length) {
+  const bytes = Buffer.alloc(6);
+  bytes.writeUIntBE(length, 0, 6);
+  return toBase64Url(bytes);
+}
+
+function computeCid(content) {
+  const prefix = encodeLength(content.length);
+  
+  const suffix = content.length <= 64
+    ? toBase64Url(content)
+    : toBase64Url(crypto.createHash('sha512').update(content).digest());
+  
+  return prefix + suffix;
+}
+
+// Example usage
+const content = Buffer.from('This');
+const cid = computeCid(content);
+console.log(`CID: ${cid}`);
+// Output: CID: AAAAAAAEVGhpcw
+```
+
+```go Go
+package main
+
+import (
+	"crypto/sha512"
+	"encoding/base64"
+	"encoding/binary"
+	"fmt"
+)
+
+func toBase64URL(data []byte) string {
+	return base64.RawURLEncoding.EncodeToString(data)
+}
+
+func encodeLength(length int) string {
+	var buffer [8]byte
+	binary.BigEndian.PutUint64(buffer[:], uint64(length))
+	return toBase64URL(buffer[2:])
+}
+
+func computeCID(content []byte) string {
+	prefix := encodeLength(len(content))
+
+	var suffix string
+	if len(content) <= 64 {
+		suffix = toBase64URL(content)
+	} else {
+		hash := sha512.Sum512(content)
+		suffix = toBase64URL(hash[:])
+	}
+
+	return prefix + suffix
+}
+
+func main() {
+	content := []byte("This")
+	cid := computeCID(content)
+	fmt.Printf("CID: %s\n", cid)
+	// Output: CID: AAAAAAAEVGhpcw
+}
+```
+
+```bash Bash
+#!/bin/bash
+
+# Compute CID using OpenSSL and base64
+function compute_cid() {
+    local content="$1"
+    local length=${#content}
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    # Encode length as base64url
+    local length_hex=$(printf '%012x' $length)
+    local length_b64=$(echo -n $length_hex | xxd -r -p | base64 | tr '+/' '-_' | tr -d '=')
+    
+    if [ $length -le 64 ]; then
+        # Small content: encode inline
+        local content_b64=$(echo -n "$content" | base64 | tr '+/' '-_' | tr -d '=')
+        echo "${length_b64}${content_b64}"
+    else
+        # Large content: hash with SHA-512
+        local hash_b64=$(echo -n "$content" | openssl dgst -sha512 -binary | base64 | tr '+/' '-_' | tr -d '=')
+        echo "${length_b64}${hash_b64}"
+    fi
+}
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+# Example usage
+cid=$(compute_cid "This")
+echo "CID: $cid"
+# Output: CID: AAAAAAAEVGhpcw
+```
+</CodeGroup>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+## Understanding the Examples
 
-### Step 3: Go live
+### Small Content Example (≤ 64 bytes)
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+For the content `"This"` (4 bytes):
 
-## Next steps
+<Steps>
+  <Step title="Compute the length prefix">
+    - Content length: 4 bytes
+    - Convert to 6-byte big-endian: `0x000000000004`
+    - Base64url encode: `AAAAAAAE`
+  </Step>
+  
+  <Step title="Encode the content">
+    - Content: `This`
+    - Base64url encode: `VGhpcw`
+  </Step>
+  
+  <Step title="Concatenate">
+    - CID: `AAAAAAAE` + `VGhpcw` = `AAAAAAAEVGhpcw`
+  </Step>
+</Steps>
 
-Now that you have your docs running, explore these key features:
+### Large Content Example (> 64 bytes)
 
-<CardGroup cols={2}>
+For content larger than 64 bytes, we use SHA-512:
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+<Steps>
+  <Step title="Compute the length prefix">
+    - Content length: 1024 bytes
+    - Convert to 6-byte big-endian: `0x000000000400`
+    - Base64url encode: `AAAAEAA`
+  </Step>
+  
+  <Step title="Hash the content">
+    - Compute SHA-512 hash of content (64 bytes)
+    - Base64url encode the hash (86 characters)
+  </Step>
+  
+  <Step title="Concatenate">
+    - CID: `AAAAEAA` + (86-char hash) = 94-character CID
+  </Step>
+</Steps>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+## Verifying a CID
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+To verify that content matches a given CID, simply recompute the CID and compare:
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+<CodeGroup>
+```python Python
+def verify_cid(content: bytes, expected_cid: str) -> bool:
+    """Verify content matches the expected CID"""
+    computed_cid = compute_cid(content)
+    return computed_cid == expected_cid
 
+# Example verification
+content = b"This"
+expected = "AAAAAAAEVGhpcw"
+
+if verify_cid(content, expected):
+    print("✓ Content verified!")
+else:
+    print("✗ Content does not match CID")
+```
+
+```javascript JavaScript
+function verifyCid(content, expectedCid) {
+  const computedCid = computeCid(content);
+  return computedCid === expectedCid;
+}
+
+// Example verification
+const content = Buffer.from('This');
+const expected = 'AAAAAAAEVGhpcw';
+
+if (verifyCid(content, expected)) {
+  console.log('✓ Content verified!');
+} else {
+  console.log('✗ Content does not match CID');
+}
+```
+
+```go Go
+func verifyCID(content []byte, expectedCID string) bool {
+	computedCID := computeCID(content)
+	return computedCID == expectedCID
+}
+
+// Example verification
+func main() {
+	content := []byte("This")
+	expected := "AAAAAAAEVGhpcw"
+
+	if verifyCID(content, expected) {
+		fmt.Println("✓ Content verified!")
+	} else {
+		fmt.Println("✗ Content does not match CID")
+	}
+}
+```
+</CodeGroup>
+
+<Warning>
+**Always verify content before using it.** It's easier for an attacker to lie about content than to engineer a hash collision. Verification protects against both malicious and accidental mismatches.
+</Warning>
+
+## Try More Examples
+
+Here are some ready-to-test examples:
+
+| Content | Length | CID |
+|---------|--------|-----|
+| `"A"` | 1 byte | `AAAAAAABQQ` |
+| `"Th"` | 2 bytes | `AAAAAAACVGg` |
+| `"This"` | 4 bytes | `AAAAAAAEVGhpcw` |
+| `"This is "` | 8 bytes | `AAAAAAAIVGhpcyBpcyA` |
+| `"This is sample c"` | 16 bytes | `AAAAAAAQVGhpcyBpcyBzYW1wbGUgYw` |
+| `"Hello, content-addressable world!\n"` | 34 bytes | `AAAAAAAiSGVsbG8sIGNvbnRlbnQtYWRkcmVzc2FibGUgd29ybGQhCg` |
+
+## Using Pre-Built Implementations
+
+Rather than implementing from scratch, you can use one of 40+ existing implementations:
+
+<CardGroup cols={3}>
+  <Card title="Python" icon="python">
+    ```bash
+    cd implementations/python
+    python cid.py
+    ```
+  </Card>
+  
+  <Card title="JavaScript" icon="js">
+    ```bash
+    cd implementations/javascript
+    node cid.js
+    ```
+  </Card>
+  
+  <Card title="Go" icon="golang">
+    ```bash
+    cd implementations/go
+    go run cid.go
+    ```
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+See the [Implementations](/implementations/overview) page for the complete list of available languages and detailed usage instructions.
 </Note>
+
+## Interactive Tools
+
+For browser-based exploration, 256t.org provides several interactive tools:
+
+- **[Hash Calculator](https://256t.org/hash.html)** - Type text and instantly see its SHA-512 hash in base64url
+- **[CID Examples](https://256t.org/examples.html)** - Select example files and verify their CIDs
+- **[File CID Check](https://256t.org/check.html)** - Drag and drop files to calculate their CID
+- **[CID Download](https://256t.org/download.html)** - Download and verify content from a 256t.org server
+
+## Common Pitfalls
+
+<Warning>
+**Base64url vs Base64**: Make sure you use base64url encoding (RFC 4648 Section 5), which replaces `+` with `-` and `/` with `_`, and omits padding `=` characters.
+</Warning>
+
+<Warning>
+**Length Encoding**: The length must be encoded as a 6-byte (48-bit) big-endian integer before base64url encoding, not as an ASCII string.
+</Warning>
+
+<Warning>
+**Small Content Threshold**: Content of exactly 64 bytes can be stored inline. The threshold is ≤ 64 bytes, not < 64 bytes.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View All Implementations" icon="code" href="/implementations/overview">
+    Explore implementations in 40+ programming languages
+  </Card>
+  
+  <Card title="Deployment Guide" icon="cloud-arrow-up" href="/deployment/overview">
+    Learn how to publish and serve content-addressed storage
+  </Card>
+  
+  <Card title="FAQ" icon="question" href="/faq">
+    Common questions about CIDs and implementation
+  </Card>
+  
+  <Card title="Specification" icon="book" href="/specification/cid-format">
+    Detailed specification and algorithm reference
+  </Card>
+</CardGroup>

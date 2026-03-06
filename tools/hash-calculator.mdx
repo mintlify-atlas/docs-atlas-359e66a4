@@ -1,0 +1,139 @@
+---
+title: Hash Calculator
+description: Calculate SHA-512 hashes and CIDs for text content in real-time
+---
+
+The Hash Calculator is a browser-based tool that lets you type or paste text and instantly see its SHA-512 hash encoded in Base64URL format, along with the complete Content Identifier (CID).
+
+## Access the Tool
+
+The Hash Calculator is available at:
+
+```
+https://256t.org/hash.html
+```
+
+## How to Use
+
+<Steps>
+  <Step title="Open the Hash Calculator">
+    Navigate to [hash.html](https://256t.org/hash.html) in your browser.
+  </Step>
+  
+  <Step title="Enter your text">
+    Type or paste any text into the text area. The hash and CID are calculated automatically as you type.
+  </Step>
+  
+  <Step title="Configure normalization options">
+    Choose from two text normalization options:
+    - **Normalize line endings (CRLF → LF)** - Converts Windows-style line endings to Unix-style (checked by default)
+    - **Add trailing newline if missing** - Ensures text ends with a newline character (unchecked by default)
+  </Step>
+  
+  <Step title="View the results">
+    The tool displays:
+    - Content length (in bytes)
+    - Base64 length encoding
+    - SHA-512 hash in Base64URL format
+    - First 64 characters in Base64URL
+    - Complete CID (clickable link)
+  </Step>
+</Steps>
+
+## Understanding the Output
+
+The Hash Calculator shows several important values:
+
+### Content Length
+
+The size of your text in bytes after normalization. This is the actual size of the content that will be hashed.
+
+### Base64 Length
+
+The length prefix encoded in Base64URL format. This 8-character string represents the content length and is the first part of every CID.
+
+### SHA-512 (Base64URL)
+
+The full SHA-512 hash of your content, encoded in Base64URL format. This is 86 characters long.
+
+### First 64 Characters
+
+For content ≤ 64 bytes, this shows the Base64URL encoding of the actual content (not the hash). This is used in literal CIDs.
+
+### CID
+
+The complete Content Identifier, which consists of:
+- 8 characters for the length prefix
+- 86 characters for the hash (or the content itself if ≤ 64 bytes)
+
+<Note>
+For content **≤ 64 bytes**, the CID contains the actual content encoded in Base64URL instead of a hash. This is called a "literal CID" and allows small content to be embedded directly in the identifier.
+</Note>
+
+## Text Normalization
+
+Text normalization ensures consistent hashes across different platforms:
+
+### Normalize Line Endings
+
+When enabled (default), this option converts Windows-style line endings (CRLF, `\r\n`) to Unix-style (LF, `\n`). This is important because:
+
+- Different operating systems use different line endings
+- Git and most text editors can convert between formats
+- Normalizing ensures the same text produces the same CID regardless of platform
+
+### Add Trailing Newline
+
+When enabled, this option adds a newline character at the end of your text if one isn't already present. This is useful for:
+
+- Matching the behavior of text editors that automatically add trailing newlines
+- Ensuring consistency with files saved by common development tools
+- Following Unix text file conventions
+
+<Note>
+**Best Practice:** Keep "Normalize line endings" enabled to ensure consistent CIDs across different platforms. Enable "Add trailing newline" if you're matching CIDs for files that follow Unix conventions.
+</Note>
+
+## Use Cases
+
+### Quick CID Generation
+
+Generate CIDs for small text snippets without creating files:
+
+```
+Hello, World!
+```
+
+Paste this into the calculator to get its CID instantly.
+
+### Testing Text Normalization
+
+Compare how different normalization settings affect the resulting CID:
+
+1. Type some text with multiple lines
+2. Toggle the normalization options
+3. Observe how the CID changes
+
+### Understanding Literal vs. Hash CIDs
+
+Experiment with different content lengths:
+
+- Enter text ≤ 64 bytes - notice the CID contains the encoded content
+- Enter text > 64 bytes - notice the CID contains a SHA-512 hash instead
+
+### Validating CID Calculations
+
+Verify that your implementation calculates CIDs correctly by comparing results with the Hash Calculator.
+
+## Technical Details
+
+The Hash Calculator uses:
+
+- **Web Crypto API** (`crypto.subtle.digest`) for SHA-512 hashing
+- **TextEncoder API** to convert text to UTF-8 bytes
+- **Client-side JavaScript** - your content never leaves your browser
+- **Real-time calculation** - results update as you type
+
+<Note>
+The Hash Calculator requires a browser that supports the Web Crypto API. All modern browsers (Chrome, Firefox, Safari, Edge) support this feature.
+</Note>

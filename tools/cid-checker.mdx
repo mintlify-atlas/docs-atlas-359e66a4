@@ -1,0 +1,200 @@
+---
+title: CID Checker
+description: Upload files to calculate and verify their Content Identifiers
+---
+
+The CID Checker is a browser-based tool that analyzes files and calculates their Content Identifiers (CIDs). Upload or drag-and-drop any file to see its CID, preview its content, and verify its integrity.
+
+## Access the Tool
+
+The CID Checker is available at:
+
+```
+https://256t.org/check.html
+```
+
+## How to Use
+
+<Steps>
+  <Step title="Open the CID Checker">
+    Navigate to [check.html](https://256t.org/check.html) in your browser.
+  </Step>
+  
+  <Step title="Upload a file">
+    You can upload a file in two ways:
+    - **Click** the drop zone to browse and select a file
+    - **Drag and drop** a file directly onto the drop zone
+  </Step>
+  
+  <Step title="View file information">
+    After uploading, the tool displays:
+    - Filename
+    - File type (MIME type)
+    - File size in bytes
+  </Step>
+  
+  <Step title="Preview the content">
+    For supported file types, you'll see:
+    - **Text files** - The first 5,000 characters
+    - **Image files** - A visual preview
+    - **Other files** - No preview (but CID is still calculated)
+  </Step>
+  
+  <Step title="Review the CID calculation">
+    The tool shows:
+    - Content length
+    - Base64 length encoding
+    - SHA-512 hash (Base64URL)
+    - First 64 characters (Base64URL)
+    - Complete CID with a clickable link
+  </Step>
+</Steps>
+
+## Understanding the Output
+
+### File Information
+
+The tool displays basic metadata about your file:
+
+- **Filename** - Original name of the uploaded file
+- **File Type** - Detected MIME type (e.g., `text/plain`, `image/png`, `application/pdf`)
+- **File Size** - Size in bytes with proper formatting (e.g., "1,234 bytes")
+
+### Content Preview
+
+When possible, the tool shows a preview of your file's content:
+
+#### Text Files
+
+For text-based files (≤ 100KB), you'll see:
+- Plain text content with preserved formatting
+- Maximum 5,000 characters displayed
+- Truncation notice if the file is longer
+
+Supported text formats:
+- `.txt`, `.md`, `.json`, `.xml`, `.html`, `.css`, `.js`
+- Any file with a `text/*` MIME type
+
+#### Image Files
+
+For image files, you'll see:
+- Full image preview
+- Responsive sizing (scales to fit)
+- Rounded corners for better presentation
+
+Supported image formats:
+- `.jpg`, `.jpeg`, `.png`, `.gif`, `.svg`, `.webp`
+
+#### Other Files
+
+Files that aren't text or images (like PDFs, ZIPs, or binary files) won't show a preview, but their CID is still calculated correctly.
+
+### CID Calculation Results
+
+The tool provides detailed information about the CID:
+
+#### Content Length
+
+The exact size of your file in bytes.
+
+#### Base64 Length
+
+The 8-character Base64URL encoding of the file length. This is the first part of every CID.
+
+#### SHA-512 (Base64URL)
+
+The 86-character SHA-512 hash of your file content, encoded in Base64URL format.
+
+#### First 64 Characters
+
+The Base64URL encoding of the first 64 bytes of your file. For files ≤ 64 bytes, this represents the entire content.
+
+#### CID
+
+The complete Content Identifier:
+- Starts with the 8-character length prefix
+- Followed by either:
+  - The hash (86 characters) for files > 64 bytes
+  - The content itself (Base64URL encoded) for files ≤ 64 bytes
+
+<Note>
+**Literal CIDs:** Files **≤ 64 bytes** have their content embedded directly in the CID instead of using a hash. This means you can retrieve the content from the CID itself without accessing the original file.
+</Note>
+
+## Supported File Types
+
+The CID Checker supports **any file type**:
+
+- Text files (`.txt`, `.md`, `.json`, `.xml`, `.html`, `.css`, `.js`, etc.)
+- Image files (`.jpg`, `.png`, `.gif`, `.svg`, `.webp`, etc.)
+- Document files (`.pdf`, `.doc`, `.docx`, etc.)
+- Archive files (`.zip`, `.tar`, `.gz`, etc.)
+- Binary files (executables, libraries, etc.)
+
+Even if a file type can't be previewed, its CID will be calculated correctly.
+
+## Use Cases
+
+### Verify File Integrity
+
+Calculate a file's CID to:
+- Create a tamper-evident identifier
+- Verify a file hasn't been modified
+- Compare files by their content (not filename)
+
+### Generate CIDs for Distribution
+
+Before distributing files:
+1. Upload each file to the CID Checker
+2. Note the CID for each file
+3. Share the CIDs alongside or instead of the files
+4. Recipients can verify they received the correct content
+
+### Test Your Implementation
+
+If you're implementing CID support:
+1. Calculate a file's CID using your implementation
+2. Upload the same file to the CID Checker
+3. Compare the results to verify correctness
+
+### Understand Literal vs. Hash CIDs
+
+Experiment with files of different sizes:
+- Upload files ≤ 64 bytes (try a small text file)
+- Upload files > 64 bytes
+- Compare the CID structure and notice the difference
+
+## Privacy and Security
+
+<Note>
+**Your files never leave your browser.** The CID Checker runs entirely client-side using JavaScript and the Web Crypto API. No data is uploaded to any server.
+</Note>
+
+### What Happens to Your Files
+
+1. File is read using the browser's File API
+2. SHA-512 hash is calculated using the Web Crypto API
+3. CID is computed using client-side JavaScript
+4. Results are displayed in your browser
+5. File data is discarded when you leave the page
+
+### Safe for Sensitive Files
+
+Because processing happens locally:
+- You can safely check CIDs for confidential files
+- No network requests are made for the file content
+- No file data is stored or transmitted
+
+## Technical Details
+
+The CID Checker uses:
+
+- **File API** for reading uploaded files
+- **Web Crypto API** (`crypto.subtle.digest`) for SHA-512 hashing
+- **Drag and Drop API** for file upload UX
+- **TextDecoder API** for text preview
+- **Client-side JavaScript** for all processing
+
+<Note>
+Requires a modern browser with Web Crypto API support. All major browsers (Chrome, Firefox, Safari, Edge) support this feature.
+</Note>
