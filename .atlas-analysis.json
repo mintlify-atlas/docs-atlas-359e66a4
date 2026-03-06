@@ -1,0 +1,84 @@
+{
+  "projectType": "general",
+  "projectName": "256t.org",
+  "projectDescription": "A public specification for content-addressable storage using 94-character content identifiers (CIDs)",
+  "theme": "palm",
+  "primaryColor": "#2563eb",
+  "lightColor": "#60a5fa",
+  "darkColor": "#1e40af",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "introduction",
+          "what-is-256t",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Specification",
+        "pages": [
+          "specification/cid-format",
+          "specification/base64url-encoding",
+          "specification/hash-algorithm",
+          "specification/content-inline-vs-hashed"
+        ]
+      },
+      {
+        "group": "Implementations",
+        "pages": [
+          "implementations/overview",
+          "implementations/javascript",
+          "implementations/python",
+          "implementations/rust",
+          "implementations/go",
+          "implementations/all-languages"
+        ]
+      },
+      {
+        "group": "Tools",
+        "pages": [
+          "tools/overview",
+          "tools/hash-calculator",
+          "tools/cid-checker",
+          "tools/download-tool"
+        ]
+      },
+      {
+        "group": "Deployment",
+        "pages": [
+          "deployment/overview",
+          "deployment/cloudflare-r2",
+          "deployment/github-pages",
+          "deployment/cloudflare-worker"
+        ]
+      },
+      {
+        "group": "Resources",
+        "pages": [
+          "faq",
+          "examples",
+          "contributing"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Fixed-length 94-character content identifiers",
+    "SHA-512 based content addressing",
+    "Inline storage for content ≤ 64 bytes",
+    "40+ language implementations",
+    "Interactive web-based tools",
+    "Cloudflare R2 and GitHub Pages deployment"
+  ],
+  "publicApiSurface": [
+    "CID format: 8-char length + 86-char hash/content",
+    "Base64URL encoding (RFC 4648 section 5)",
+    "SHA-512 hash algorithm",
+    "HTTP GET /<cid> endpoint",
+    "Cache-Control: immutable headers",
+    "cid.compute(content) - generate CID from content",
+    "cid.verify(content, expectedCid) - verify content matches CID"
+  ]
+}
